@@ -1,0 +1,42 @@
+{
+  "name": "shipli",
+  "version": "1.0.0",
+  "description": "AI-powered App Store review audit for Flutter projects. Catch rejections before you submit.",
+  "type": "module",
+  "bin": {
+    "shipli": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "flutter",
+    "app-store",
+    "apple",
+    "review",
+    "audit",
+    "gemini",
+    "ai",
+    "cli",
+    "ios",
+    "static-analysis"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0",
+    "fast-glob": "^3.3.3",
+    "js-yaml": "^4.1.0",
+    "ora": "^8.2.0",
+    "plist": "^3.1.0"
+  }
+}

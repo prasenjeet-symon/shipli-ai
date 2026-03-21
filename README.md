@@ -142,6 +142,51 @@ Use `shipli config` to update settings anytime.
 | Dependency Hygiene | Constraint quality, misplaced dependencies |
 | Example App Quality | Missing or incomplete examples |
 
+## MCP Server
+
+Shipli includes a built-in [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server, so AI coding assistants like Claude Code, Cursor, and Windsurf can run audits directly inside your editor.
+
+### Setup
+
+Add to your MCP config (e.g. `~/.claude/.mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "shipli": {
+      "command": "shipli-mcp",
+      "env": {
+        "SHIPLI_PROVIDER": "claude",
+        "SHIPLI_MODEL": "claude-haiku-4-5",
+        "ANTHROPIC_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+For Gemini, use `SHIPLI_PROVIDER: "gemini"` and set `GEMINI_API_KEY` instead.
+
+### Available Tools
+
+| Tool | Description | Parameters |
+|------|-------------|------------|
+| `shipli_store_audit` | Run store compliance audit against Apple App Store and/or Google Play guidelines | `projectDir` (required), `platform` (optional: `ios`, `android`, `both`) |
+| `shipli_code_review` | Run code quality and security review | `projectDir` (required) |
+
+Both tools return structured JSON with PASS/WARNING/FAIL scores and specific guideline citations.
+
+### Usage
+
+Once configured, ask your AI assistant:
+
+```
+"Run a store audit on /path/to/my-flutter-app"
+"Review the code quality of this Flutter project"
+```
+
+The assistant will call the appropriate Shipli MCP tool and return the results inline.
+
 ## CI Integration
 
 ```yaml

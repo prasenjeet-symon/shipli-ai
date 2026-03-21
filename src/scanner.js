@@ -87,6 +87,14 @@ const SIGNAL_PATTERNS = [
   'DynamicLibrary',
   // Health
   'HealthKit', 'health',
+  // Android-specific
+  'google_mobile_ads', 'GoogleMobileAds',
+  'play_billing', 'BillingClient',
+  'targetSdkVersion', 'minSdkVersion',
+  'AndroidManifest',
+  'FlutterActivity', 'FlutterFragmentActivity',
+  'google_sign_in', 'GoogleSignIn',
+  'firebase_core', 'FirebaseCore',
   // Misc
   'openUrl', 'open(',
 ];

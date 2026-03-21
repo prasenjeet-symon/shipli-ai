@@ -37,5 +37,6 @@ export async function loadConfig(projectDir) {
     key: merged.key || undefined,
     type: merged.type || undefined,
     mode: merged.mode || undefined,
+    platform: merged.platform || undefined,
   };
 }

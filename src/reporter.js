@@ -38,19 +38,27 @@ function boxLine(text, width) {
   return chalk.dim('  │') + ' ' + text + ' '.repeat(pad) + ' ' + chalk.dim('│');
 }
 
-const MODE_TITLES = {
-  store: 'App Store Compliance Report',
-  code: 'Code Quality Report',
-  both: 'Full Audit Report',
-};
+function getTitle(mode, platform) {
+  const platformLabel = { ios: 'iOS', android: 'Android', both: 'iOS + Android' }[platform] || '';
+  if (mode === 'code') return 'Code Quality Report';
+  if (mode === 'store') {
+    if (platform === 'ios') return 'App Store Compliance Report';
+    if (platform === 'android') return 'Play Store Compliance Report';
+    return 'Store Compliance Report (iOS + Android)';
+  }
+  // both
+  if (platform && platform !== 'both') return `Full Audit Report (${platformLabel})`;
+  if (platform === 'both') return 'Full Audit Report (iOS + Android)';
+  return 'Full Audit Report';
+}
 
-export function print(result, { projectType = 'app', projectName = '', provider = '', model = '', mode = 'both' } = {}) {
+export function print(result, { projectType = 'app', projectName = '', provider = '', model = '', mode = 'both', platform = 'both' } = {}) {
   const nl = () => console.log();
 
   // ── Header Box ──
   nl();
   console.log(chalk.dim('  ┌' + '─'.repeat(BOX_WIDTH) + '┐'));
-  const title = MODE_TITLES[mode] || MODE_TITLES.both;
+  const title = getTitle(mode, platform);
   console.log(boxLine(chalk.bold('Shipli') + chalk.dim(`  —  ${title}`), BOX_WIDTH));
   if (projectName) {
     console.log(boxLine(chalk.cyan(projectName) + chalk.dim(`  (${projectType})`), BOX_WIDTH));

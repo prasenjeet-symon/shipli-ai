@@ -28,19 +28,28 @@ RESPONSE FORMAT (strict JSON):
 Be thorough but practical. Flag real risks, not theoretical ones. Reference specific file paths and dependency names in your findings.
 Respond ONLY with the JSON object, no markdown fencing, no extra text.`;
 
-// ── App prompts ──
+// ── Store categories ──
 
-const APP_STORE_CATEGORIES = `
-AUDIT CATEGORIES (evaluate each):
+const IOS_STORE_CATEGORIES = `
+iOS APP STORE AUDIT CATEGORIES (evaluate each):
 1. PRIVACY & PERMISSIONS — Are all used sensitive APIs declared in Info.plist with descriptive, specific usage strings? Are there undeclared permissions implied by dependencies?
 2. DATA COLLECTION & TRACKING — Does the app collect user data? Is App Tracking Transparency needed? Are analytics/crash SDKs present?
 3. CONTENT & DESIGN — Does the app meet minimum functionality? Any signs of webview-only wrapping? Responsive layout issues?
 4. IN-APP PURCHASES — If payment/purchase code exists, is it using Apple's StoreKit/IAP? Signs of third-party payment for digital goods?
 5. LEGAL & COMPLIANCE — Privacy policy requirements, export compliance (encryption), COPPA concerns, age ratings?
-6. FORBIDDEN PATTERNS — Code push/dynamic code loading (not allowed), hot-patching, remote code execution?`;
+6. FORBIDDEN PATTERNS — Code push/dynamic code loading (not allowed by Apple), hot-patching, remote code execution?`;
 
-const APP_CODE_CATEGORIES = `
-AUDIT CATEGORIES (evaluate each):
+const ANDROID_STORE_CATEGORIES = `
+GOOGLE PLAY STORE AUDIT CATEGORIES (evaluate each):
+1. PERMISSIONS & DATA SAFETY — Are all declared permissions in AndroidManifest.xml necessary? Does the app comply with Google Play's Data Safety requirements? Are runtime permissions handled correctly?
+2. DATA COLLECTION & PRIVACY — Does the app collect personal/sensitive user data? Is a privacy policy provided? Does the app comply with Google Play's User Data policy?
+3. CONTENT & BEHAVIOR — Does the app contain restricted content (gambling, financial services, health)? Any deceptive behavior, ad fraud, or misleading functionality?
+4. BILLING & MONETIZATION — If the app sells digital goods, is it using Google Play Billing Library? Are subscriptions handled per Google Play policy?
+5. TARGET API LEVEL & COMPATIBILITY — Does the app target the required minimum API level? Are there compatibility issues with recent Android versions?
+6. MALWARE & ABUSE — Any signs of stalkerware, spyware, or abusive notifications? Does the app misuse device APIs or background services?`;
+
+const CODE_CATEGORIES = `
+CODE QUALITY AUDIT CATEGORIES (evaluate each):
 1. SECURITY — Hardcoded API keys, insecure HTTP calls, SQL injection, command injection, known vulnerable patterns?
 2. ARCHITECTURE — State management patterns, separation of concerns, proper layering, overly coupled components?
 3. ERROR HANDLING — try/catch coverage, error boundaries, crash handling, graceful degradation?
@@ -48,29 +57,71 @@ AUDIT CATEGORIES (evaluate each):
 5. BEST PRACTICES — Proper dispose/lifecycle handling, null safety compliance, deprecated API usage, resource cleanup?
 6. DEPENDENCIES — Outdated/unmaintained packages, overly broad version constraints, misplaced dev dependencies?`;
 
-const APP_STORE_PROMPT = `You are an experienced Apple App Store reviewer conducting a pre-submission compliance audit of a Flutter/Dart application.
+// ── System prompt builders ──
 
-You have been provided the CURRENT Apple App Store Review Guidelines in the "APPLE_APP_STORE_GUIDELINES" section below (if available). Use these as your PRIMARY reference — cite specific section numbers (e.g., "5.1.1", "3.1.1") in your findings.
+function buildStorePrompt(platform) {
+  const isIos = platform === 'ios';
+  const isAndroid = platform === 'android';
+  const isBoth = platform === 'both';
+
+  const guidelinesRef = [];
+  if (isIos || isBoth) {
+    guidelinesRef.push('You have been provided the CURRENT Apple App Store Review Guidelines in the "APPLE_APP_STORE_GUIDELINES" section (if available). Cite specific Apple guideline section numbers (e.g., "5.1.1", "3.1.1").');
+  }
+  if (isAndroid || isBoth) {
+    guidelinesRef.push('You have been provided the CURRENT Google Play Developer Program Policies in the "GOOGLE_PLAY_GUIDELINES" section (if available). Cite specific Google Play policy names.');
+  }
+
+  const knowledge = [];
+  if (isIos || isBoth) {
+    knowledge.push(
+      "- Apple's App Store Review Guidelines (all sections)",
+      '- iOS privacy requirements (Info.plist usage descriptions, App Tracking Transparency)',
+      '- In-app purchase requirements (StoreKit vs third-party payment)',
+      '- Common iOS rejection reasons for Flutter apps',
+    );
+  }
+  if (isAndroid || isBoth) {
+    knowledge.push(
+      "- Google Play Developer Program Policies (all sections)",
+      '- Android permissions model and Data Safety requirements',
+      '- Google Play Billing Library requirements for digital goods',
+      '- Common Android rejection reasons for Flutter apps',
+    );
+  }
+  knowledge.push(
+    '- Data safety and encryption export compliance',
+    '- Minimum functionality and content policy requirements',
+  );
+
+  const evidence = ['- "PUBSPEC_METADATA": App name, version, and list of pub.dev package dependencies'];
+  if (isIos || isBoth) evidence.push('- "INFO_PLIST_PERMISSIONS": NS*UsageDescription keys from Info.plist');
+  if (isAndroid || isBoth) evidence.push('- "ANDROID_MANIFEST_PERMISSIONS": uses-permission entries from AndroidManifest.xml');
+  evidence.push('- "DART_SKELETONS": Architectural skeleton of Dart files');
+
+  const categories = [];
+  if (isIos || isBoth) categories.push(IOS_STORE_CATEGORIES);
+  if (isAndroid || isBoth) categories.push(ANDROID_STORE_CATEGORIES);
+
+  const platformLabel = isBoth ? 'Apple App Store and Google Play' : isIos ? 'Apple App Store' : 'Google Play Store';
+
+  return `You are an experienced ${platformLabel} reviewer conducting a pre-submission compliance audit of a Flutter/Dart application.
+
+${guidelinesRef.join('\n')}
 
 You have deep knowledge of:
-- Apple's App Store Review Guidelines (all sections)
-- Common rejection reasons for Flutter/cross-platform apps
-- iOS privacy requirements (Info.plist usage descriptions, App Tracking Transparency)
-- Required disclosures for sensitive APIs (camera, microphone, location, contacts, health, photos)
-- In-app purchase requirements (StoreKit vs third-party payment)
-- Data safety and encryption export compliance
-- Minimum functionality and content policy requirements
+${knowledge.join('\n')}
 
-Focus ONLY on App Store compliance — not code quality or architecture.
+Focus ONLY on store compliance — not code quality or architecture.
 
 EVIDENCE FORMAT:
-- "PUBSPEC_METADATA": App name, version, and list of pub.dev package dependencies
-- "INFO_PLIST_PERMISSIONS": NS*UsageDescription keys and their values from Info.plist
-- "DART_SKELETONS": Architectural skeleton of Dart files
-${APP_STORE_CATEGORIES}
+${evidence.join('\n')}
+${categories.join('\n')}
 ${RESPONSE_FORMAT}`;
+}
 
-const APP_CODE_PROMPT = `You are a senior Flutter/Dart software engineer conducting a code quality and security review. You have deep knowledge of:
+function buildCodePrompt() {
+  return `You are a senior Flutter/Dart software engineer conducting a code quality and security review. You have deep knowledge of:
 
 - Flutter best practices, widget lifecycle, state management patterns
 - Dart language features, null safety, async patterns
@@ -78,47 +129,86 @@ const APP_CODE_PROMPT = `You are a senior Flutter/Dart software engineer conduct
 - Performance optimization for Flutter (build methods, rebuilds, isolates)
 - Dependency management and pub.dev ecosystem health
 
-Focus ONLY on code quality, security, and engineering best practices — not App Store compliance or legal requirements.
+Focus ONLY on code quality, security, and engineering best practices — not store compliance or legal requirements.
 
 EVIDENCE FORMAT:
 - "PUBSPEC_METADATA": App name, version, and list of pub.dev package dependencies
 - "DART_SKELETONS": Architectural skeleton of Dart files
-${APP_CODE_CATEGORIES}
+${CODE_CATEGORIES}
 ${RESPONSE_FORMAT}`;
+}
 
-const APP_BOTH_PROMPT = `You are an experienced Apple App Store reviewer AND senior Flutter/Dart engineer conducting a comprehensive audit of a Flutter application.
+function buildBothPrompt(platform) {
+  const isIos = platform === 'ios';
+  const isAndroid = platform === 'android';
+  const isBoth = platform === 'both';
 
-You have been provided the CURRENT Apple App Store Review Guidelines in the "APPLE_APP_STORE_GUIDELINES" section below (if available). Use these as your PRIMARY reference for compliance checks — cite specific section numbers (e.g., "5.1.1", "3.1.1") in your findings.
+  const guidelinesRef = [];
+  if (isIos || isBoth) {
+    guidelinesRef.push('You have been provided the CURRENT Apple App Store Review Guidelines in the "APPLE_APP_STORE_GUIDELINES" section (if available). Cite specific Apple guideline numbers.');
+  }
+  if (isAndroid || isBoth) {
+    guidelinesRef.push('You have been provided the CURRENT Google Play Developer Program Policies in the "GOOGLE_PLAY_GUIDELINES" section (if available). Cite specific Google Play policy names.');
+  }
+
+  const knowledge = [];
+  if (isIos || isBoth) {
+    knowledge.push(
+      "- Apple's App Store Review Guidelines (all sections)",
+      '- iOS privacy requirements (Info.plist usage descriptions, App Tracking Transparency)',
+      '- In-app purchase requirements (StoreKit vs third-party payment)',
+    );
+  }
+  if (isAndroid || isBoth) {
+    knowledge.push(
+      "- Google Play Developer Program Policies (all sections)",
+      '- Android permissions model and Data Safety requirements',
+      '- Google Play Billing Library requirements',
+    );
+  }
+  knowledge.push(
+    '- Flutter best practices, widget lifecycle, state management patterns',
+    '- Common security vulnerabilities in mobile apps (OWASP Mobile Top 10)',
+    '- Performance optimization and dependency management',
+  );
+
+  const evidence = ['- "PUBSPEC_METADATA": App name, version, and list of pub.dev package dependencies'];
+  if (isIos || isBoth) evidence.push('- "INFO_PLIST_PERMISSIONS": NS*UsageDescription keys from Info.plist');
+  if (isAndroid || isBoth) evidence.push('- "ANDROID_MANIFEST_PERMISSIONS": uses-permission entries from AndroidManifest.xml');
+  evidence.push('- "DART_SKELETONS": Architectural skeleton of Dart files');
+
+  const categories = [];
+  if (isIos || isBoth) categories.push(IOS_STORE_CATEGORIES);
+  if (isAndroid || isBoth) categories.push(ANDROID_STORE_CATEGORIES);
+  categories.push(CODE_CATEGORIES);
+
+  const platformLabel = isBoth ? 'Apple App Store and Google Play' : isIos ? 'Apple App Store' : 'Google Play Store';
+
+  return `You are an experienced ${platformLabel} reviewer AND senior Flutter/Dart engineer conducting a comprehensive audit.
+
+${guidelinesRef.join('\n')}
 
 You have deep knowledge of:
-- Apple's App Store Review Guidelines (all sections)
-- Common rejection reasons for Flutter/cross-platform apps
-- iOS privacy requirements (Info.plist usage descriptions, App Tracking Transparency)
-- In-app purchase requirements, data safety, and encryption export compliance
-- Flutter best practices, widget lifecycle, state management patterns
-- Common security vulnerabilities in mobile apps (OWASP Mobile Top 10)
-- Performance optimization and dependency management
+${knowledge.join('\n')}
 
-Analyze the provided Flutter project evidence and produce a comprehensive audit report covering both App Store compliance and code quality.
+Analyze the provided Flutter project evidence and produce a comprehensive audit report covering both store compliance and code quality.
 
 EVIDENCE FORMAT:
-- "PUBSPEC_METADATA": App name, version, and list of pub.dev package dependencies
-- "INFO_PLIST_PERMISSIONS": NS*UsageDescription keys and their values from Info.plist
-- "DART_SKELETONS": Architectural skeleton of Dart files
-${APP_STORE_CATEGORIES}
-${APP_CODE_CATEGORIES}
+${evidence.join('\n')}
+${categories.join('\n')}
 ${RESPONSE_FORMAT}`;
+}
 
-// ── Package prompts ──
+// ── Package prompt builders ──
 
 const PKG_STORE_CATEGORIES = `
-AUDIT CATEGORIES (evaluate each):
+PACKAGE STORE AUDIT CATEGORIES (evaluate each):
 1. PLATFORM DECLARATIONS — Do declared platforms in pubspec match actual platform channel implementations? Are MethodChannel names consistent? Missing platforms?
-2. CONSUMER PERMISSIONS GUIDANCE — Does the plugin use sensitive APIs (camera, location, contacts, etc.)? If so, are the required Info.plist keys documented for host apps?
+2. CONSUMER PERMISSIONS GUIDANCE — Does the plugin use sensitive APIs (camera, location, contacts, etc.)? If so, are the required Info.plist keys / AndroidManifest permissions documented for host apps?
 3. LEGAL & COMPLIANCE — License clarity, export compliance signals (encryption), data handling implications for consuming apps?`;
 
 const PKG_CODE_CATEGORIES = `
-AUDIT CATEGORIES (evaluate each):
+PACKAGE CODE AUDIT CATEGORIES (evaluate each):
 1. API SURFACE & DOCUMENTATION — Is the public API clean and well-structured? Are exported symbols intentional? Clear entry point?
 2. DEPENDENCY HYGIENE — Are dependency constraints appropriate? Any problematic or heavy transitive dependencies? Should any deps be dev_dependencies?
 3. SECURITY — Hardcoded API keys, insecure HTTP calls, unsafe platform channel data handling?
@@ -126,14 +216,15 @@ AUDIT CATEGORIES (evaluate each):
 5. EXAMPLE APP QUALITY — Does the example/ app exist and demonstrate key features? Is it a good integration test?
 6. FLUTTER-SPECIFIC — Proper dispose/lifecycle handling, memory leak risks, platform channel error handling, null safety compliance?`;
 
-const PKG_STORE_PROMPT = `You are an experienced Flutter plugin reviewer focused on compliance and platform integration. You have deep knowledge of:
+function buildPkgStorePrompt() {
+  return `You are an experienced Flutter plugin reviewer focused on compliance and platform integration. You have deep knowledge of:
 
 - Flutter plugin architecture (platform channels, federated plugins)
-- iOS platform integration requirements for Flutter plugins
+- iOS and Android platform integration requirements for Flutter plugins
 - Privacy and permission implications for consuming apps
-- Apple App Store Review Guidelines as they affect plugins
+- Apple App Store Review Guidelines and Google Play Developer Policies as they affect plugins
 
-Focus ONLY on Apple App Store compliance and consumer-facing requirements — not code quality.
+Focus ONLY on store compliance and consumer-facing requirements — not code quality.
 
 EVIDENCE FORMAT:
 - "PUBSPEC_METADATA": Package name, version, description, dependencies
@@ -142,8 +233,10 @@ EVIDENCE FORMAT:
 - "EXAMPLE_APP" (if present): Skeleton of the example/ app
 ${PKG_STORE_CATEGORIES}
 ${RESPONSE_FORMAT}`;
+}
 
-const PKG_CODE_PROMPT = `You are a senior Flutter/Dart package engineer conducting a code quality review. You have deep knowledge of:
+function buildPkgCodePrompt() {
+  return `You are a senior Flutter/Dart package engineer conducting a code quality review. You have deep knowledge of:
 
 - pub.dev scoring criteria (documentation, API design, maintenance, platform support)
 - Dart package best practices (semantic versioning, dependency constraints, export hygiene)
@@ -159,13 +252,15 @@ EVIDENCE FORMAT:
 - "EXAMPLE_APP" (if present): Skeleton of the example/ app
 ${PKG_CODE_CATEGORIES}
 ${RESPONSE_FORMAT}`;
+}
 
-const PKG_BOTH_PROMPT = `You are an experienced Flutter/Dart package reviewer and pub.dev quality auditor. You have deep knowledge of:
+function buildPkgBothPrompt() {
+  return `You are an experienced Flutter/Dart package reviewer and pub.dev quality auditor. You have deep knowledge of:
 
 - Flutter plugin architecture (platform channels, federated plugins, platform interface patterns)
 - pub.dev scoring criteria (documentation, API design, maintenance, platform support)
 - Dart package best practices (semantic versioning, dependency constraints, export hygiene)
-- iOS platform integration requirements
+- iOS and Android platform integration requirements
 - Privacy and permission implications for consuming apps
 
 Analyze the provided Flutter package/plugin evidence and produce a comprehensive audit report.
@@ -178,29 +273,39 @@ EVIDENCE FORMAT:
 ${PKG_STORE_CATEGORIES}
 ${PKG_CODE_CATEGORIES}
 ${RESPONSE_FORMAT}`;
+}
 
 // ── Prompt selection ──
 
-const PROMPTS = {
-  app:     { store: APP_STORE_PROMPT, code: APP_CODE_PROMPT, both: APP_BOTH_PROMPT },
-  package: { store: PKG_STORE_PROMPT, code: PKG_CODE_PROMPT, both: PKG_BOTH_PROMPT },
-};
-
-function selectPrompt(projectType, mode) {
-  return PROMPTS[projectType]?.[mode] || PROMPTS.app.both;
+function selectPrompt(projectType, mode, platform) {
+  if (projectType === 'package') {
+    if (mode === 'store') return buildPkgStorePrompt();
+    if (mode === 'code') return buildPkgCodePrompt();
+    return buildPkgBothPrompt();
+  }
+  // App
+  if (mode === 'store') return buildStorePrompt(platform);
+  if (mode === 'code') return buildCodePrompt();
+  return buildBothPrompt(platform);
 }
 
 // ── Message builder ──
 
-function buildUserMessage({ files, exampleFiles, permissions, pubspec, plistFound, projectType, guidelines }) {
+function buildUserMessage({ files, exampleFiles, permissions, androidPermissions, pubspec, plistFound, androidManifestFound, projectType, appleGuidelines, googleGuidelines }) {
   const sections = [];
   const isPackage = projectType === 'package';
 
-  // Inject live guidelines as grounding context (store & both modes)
-  if (guidelines?.content) {
+  // Inject live guidelines as grounding context
+  if (appleGuidelines?.content) {
     sections.push('=== APPLE_APP_STORE_GUIDELINES ===');
-    sections.push(`(Live from developer.apple.com, fetched ${guidelines.fetchedAt?.split('T')[0] || 'unknown'})`);
-    sections.push(guidelines.content);
+    sections.push('(Apple App Store Review Guidelines)');
+    sections.push(appleGuidelines.content);
+  }
+
+  if (googleGuidelines?.content) {
+    sections.push('\n=== GOOGLE_PLAY_GUIDELINES ===');
+    sections.push('(Google Play Developer Program Policies)');
+    sections.push(googleGuidelines.content);
   }
 
   sections.push('\n=== PUBSPEC_METADATA ===');
@@ -218,7 +323,8 @@ function buildUserMessage({ files, exampleFiles, permissions, pubspec, plistFoun
     }
   }
 
-  if (!isPackage) {
+  // iOS permissions
+  if (!isPackage && plistFound !== undefined) {
     sections.push('\n=== INFO_PLIST_PERMISSIONS ===');
     if (!plistFound) {
       sections.push('Info.plist NOT FOUND at ios/Runner/Info.plist');
@@ -227,6 +333,20 @@ function buildUserMessage({ files, exampleFiles, permissions, pubspec, plistFoun
     } else {
       for (const [key, value] of Object.entries(permissions)) {
         sections.push(`${key}: "${value}"`);
+      }
+    }
+  }
+
+  // Android permissions
+  if (!isPackage && androidManifestFound !== undefined) {
+    sections.push('\n=== ANDROID_MANIFEST_PERMISSIONS ===');
+    if (!androidManifestFound) {
+      sections.push('AndroidManifest.xml NOT FOUND at android/app/src/main/AndroidManifest.xml');
+    } else if (androidPermissions.length === 0) {
+      sections.push('No <uses-permission> entries found in AndroidManifest.xml.');
+    } else {
+      for (const perm of androidPermissions) {
+        sections.push(perm);
       }
     }
   }
@@ -352,8 +472,14 @@ function estimateTokens(text) {
   return Math.ceil(text.length / 4);
 }
 
-export async function audit(evidence, { apiKey, model, provider, mode }) {
-  const systemPrompt = selectPrompt(evidence.projectType, mode);
+// Context window limits (input tokens) with buffer for output
+const TOKEN_LIMITS = {
+  claude: 150_000,  // 200K context, reserve 50K for output
+  gemini: 900_000,  // 1M context, reserve 100K for output
+};
+
+export async function audit(evidence, { apiKey, model, provider, mode, platform }) {
+  const systemPrompt = selectPrompt(evidence.projectType, mode, platform);
   const userMessage = buildUserMessage(evidence);
 
   const estimated = {
@@ -361,6 +487,23 @@ export async function audit(evidence, { apiKey, model, provider, mode }) {
     user: estimateTokens(userMessage),
     total: estimateTokens(systemPrompt) + estimateTokens(userMessage),
   };
+
+  // Safety check: warn if estimated tokens exceed provider limit
+  const limit = TOKEN_LIMITS[provider] || TOKEN_LIMITS.gemini;
+  if (estimated.total > limit) {
+    const pct = Math.round((estimated.total / limit) * 100);
+    throw new Error(
+      `Estimated input (~${estimated.total.toLocaleString()} tokens) exceeds ${provider} safe limit (~${limit.toLocaleString()} tokens) by ${pct - 100}%.\n` +
+      `  Try: --platform ios or --platform android (instead of both), or --mode store or --mode code (instead of both).`
+    );
+  }
+
+  if (estimated.total > limit * 0.8) {
+    const pct = Math.round((estimated.total / limit) * 100);
+    process.stderr.write(
+      `\x1b[33m  ⚠ Token usage is high (~${estimated.total.toLocaleString()} tokens, ${pct}% of ${provider} limit). Results may be truncated.\x1b[0m\n`
+    );
+  }
 
   const response = provider === 'claude'
     ? await callClaude(userMessage, { apiKey, model, systemPrompt })

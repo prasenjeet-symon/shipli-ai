@@ -1,16 +1,18 @@
 # 🛡️ Shipli
 
-App Store rejections cost days of development time. **Shipli** is a local CLI tool that statically analyzes your Flutter source code and `Info.plist` permissions against the latest Apple App Store Review Guidelines using an LLM.
+Store rejections cost days of development time. **Shipli** is a local CLI tool that statically analyzes your Flutter source code against the latest **Apple App Store** and **Google Play** guidelines using an LLM.
 
-Catch missing permissions, unhandled edge cases, and UI compliance issues *before* you wait in the review queue.
+Catch missing permissions, policy violations, and compliance issues *before* you submit.
 
 ## ✨ Features
 
-* **Deep UI Scanning:** Automatically detects if your responsive layouts hide required compliance buttons.
-* **Theme & Styling Checks:** Ensures your UI doesn't rely on hard-coded colors that might fail Apple's accessibility or Dark Mode review standards.
-* **Zero-Setup Artifacts:** No need to compile an `.ipa` file. It reads your `lib/` directory and `pubspec.yaml` directly.
+* **Dual Store Support:** Audit against **Apple App Store** and **Google Play** — or both at once.
+* **Two Audit Modes:** `--mode store` for compliance, `--mode code` for quality, or both (default).
+* **Live Guidelines:** Fetches the latest store policies at runtime and caches them locally.
+* **Auto-Detection:** Detects project type (app/package) and platform (ios/android) automatically.
 * **Multi-Provider:** Choose between **Google Gemini** or **Anthropic Claude** as your AI backend.
-* **CI-Friendly:** Exit code `1` on FAIL, `0` on PASS/WARNING — plug it into your pipeline.
+* **Zero-Setup Artifacts:** No `.ipa` or `.apk` needed — reads `lib/`, `pubspec.yaml`, `Info.plist`, and `AndroidManifest.xml` directly.
+* **CI-Friendly:** Exit code `1` on FAIL, `0` on PASS/WARNING.
 
 ## 🚀 Installation
 
@@ -25,17 +27,20 @@ Requires **Node.js 18+**.
 ### Quick Start
 
 ```bash
-# One-time setup — creates a .shipli config file
+# One-time setup
 shipli init
 
-# Run the audit
+# Run full audit (auto-detects platform)
 shipli --dir ./
-```
 
-Or pass everything inline:
+# iOS App Store only
+shipli --dir ./ --platform ios --mode store
 
-```bash
-shipli --dir ./ --provider claude --key YOUR_API_KEY
+# Google Play only
+shipli --dir ./ --platform android --mode store
+
+# Code quality only (platform-agnostic)
+shipli --dir ./ --mode code
 ```
 
 ### Options
@@ -47,6 +52,8 @@ shipli --dir ./ --provider claude --key YOUR_API_KEY
 | `--provider <name>` | `gemini` or `claude` | `gemini` |
 | `--model <model>` | Model override | `gemini-2.5-flash` / `claude-sonnet-4-6` |
 | `--type <type>` | `app` or `package` | auto-detected from pubspec |
+| `--mode <mode>` | `store`, `code`, or `both` | `both` |
+| `--platform <platform>` | `ios`, `android`, or `both` | auto-detected from project |
 
 ### Configuration: `.shipli`
 
@@ -56,7 +63,8 @@ Run `shipli init` to create a `.shipli` config file, or create one manually:
 {
   "provider": "claude",
   "key": "sk-ant-...",
-  "model": "claude-sonnet-4-6"
+  "model": "claude-sonnet-4-6",
+  "platform": "both"
 }
 ```
 
@@ -64,54 +72,68 @@ The CLI looks for `.shipli` in two places:
 1. **Project-level** — in the `--dir` path (highest priority)
 2. **Global** — in your home directory `~/.shipli`
 
-Project-level values override global ones. CLI flags override everything.
-
 **Resolution order:** CLI flags > project `.shipli` > global `~/.shipli` > env vars > defaults
 
 > **Note:** Add `.shipli` to your `.gitignore` — it contains your API key.
 
-Environment variables (`GEMINI_API_KEY` / `ANTHROPIC_API_KEY`) are still supported as a fallback.
-
 ## 🧠 How it Works
 
-1. **Detects Project Type:** Auto-detects whether you're auditing a **main app** or a **Flutter package/plugin** from `pubspec.yaml` (or use `--type` to override).
-2. **Extracts Evidence:** Recursively scans your `lib/` folder for Dart files, stripping noise and keeping only the architectural skeleton. For packages, it also scans `example/` if present.
-3. **Gathers Metadata:** For apps: reads `ios/Runner/Info.plist` permissions. For packages: reads plugin platform declarations from pubspec.
-4. **AI Audit:** Sends evidence to Gemini or Claude with a tailored system prompt — App Store reviewer for apps, pub.dev quality auditor for packages.
-5. **Actionable Report:** Outputs a clear Pass/Warning/Fail checklist directly in your terminal.
+1. **Detects Project & Platform:** Auto-detects app vs package from `pubspec.yaml`, and iOS/Android from project structure.
+2. **Extracts Evidence:** Scans `lib/` for Dart files, keeping only the architectural skeleton. For packages, also scans `example/`.
+3. **Gathers Metadata:** Reads `Info.plist` (iOS) and/or `AndroidManifest.xml` (Android) permissions.
+4. **Fetches Live Guidelines:** Downloads the latest Apple App Store Review Guidelines and/or Google Play Developer Policies (cached for 7 days).
+5. **AI Audit:** Sends evidence + live guidelines to the LLM with a tailored system prompt.
+6. **Actionable Report:** Outputs a Pass/Warning/Fail checklist with specific guideline citations.
 
-## 📱 App Audit Categories
+## 📱 App Store Audit Categories (iOS)
 
 | Category | Examples |
 |----------|---------|
-| **Privacy & Permissions** | Missing Info.plist usage descriptions, undeclared sensitive APIs |
-| **Data Collection & Tracking** | Analytics SDKs, ATT requirements |
+| **Privacy & Permissions** | Missing Info.plist usage descriptions, undeclared APIs |
+| **Data Collection & Tracking** | ATT requirements, analytics SDKs |
 | **Content & Design** | Webview-only apps, minimum functionality |
-| **In-App Purchases** | Third-party payment for digital goods |
-| **Security** | Hardcoded API keys, insecure HTTP |
-| **Legal** | Privacy policy, export compliance, COPPA |
-| **Performance** | Problematic dependencies, excessive permissions |
-| **Flutter-Specific** | Code push, dynamic code loading, platform channels |
+| **In-App Purchases** | StoreKit/IAP vs third-party payment |
+| **Legal & Compliance** | Privacy policy, encryption export, COPPA |
+| **Forbidden Patterns** | Code push, dynamic code loading |
+
+## 🤖 Play Store Audit Categories (Android)
+
+| Category | Examples |
+|----------|---------|
+| **Permissions & Data Safety** | Unnecessary permissions, Data Safety compliance |
+| **Data Collection & Privacy** | Privacy policy, User Data policy |
+| **Content & Behavior** | Restricted content, deceptive behavior |
+| **Billing & Monetization** | Google Play Billing Library requirements |
+| **Target API & Compatibility** | Minimum API level, Android version issues |
+| **Malware & Abuse** | Stalkerware, abusive notifications |
+
+## 🔧 Code Quality Categories
+
+| Category | Examples |
+|----------|---------|
+| **Security** | Hardcoded keys, insecure HTTP, injection |
+| **Architecture** | State management, separation of concerns |
+| **Error Handling** | try/catch, crash handling |
+| **Performance** | Widget rebuilds, memory leaks |
+| **Best Practices** | Dispose/lifecycle, null safety |
+| **Dependencies** | Outdated packages, version constraints |
 
 ## 📦 Package Audit Categories
 
 | Category | Examples |
 |----------|---------|
 | **API Surface & Documentation** | Export hygiene, clear entry points |
-| **Platform Declarations** | MethodChannel consistency, missing platforms |
-| **Dependency Hygiene** | Overly tight/loose constraints, misplaced deps |
-| **Consumer Permissions Guidance** | Undocumented Info.plist keys host apps need |
-| **Security** | Hardcoded keys, unsafe platform channel handling |
-| **Compatibility & Versioning** | SDK constraints, breaking change risks |
+| **Platform Declarations** | MethodChannel consistency |
+| **Consumer Permissions Guidance** | Undocumented permission requirements |
+| **Dependency Hygiene** | Constraint quality, misplaced deps |
 | **Example App Quality** | Missing example/, incomplete demos |
-| **Flutter-Specific** | Dispose/lifecycle, memory leaks, null safety |
 
 ## 🔄 CI Integration
 
 ```yaml
 # GitHub Actions example
 - name: Shipli Audit
-  run: npx shipli --dir ./ --provider claude --key ${{ secrets.ANTHROPIC_API_KEY }}
+  run: npx shipli --dir ./ --platform both --provider claude --key ${{ secrets.ANTHROPIC_API_KEY }}
 ```
 
 The CLI exits with code `1` if the audit result is **FAIL**, making it easy to gate deployments.

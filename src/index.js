@@ -9,9 +9,10 @@ import { Command } from 'commander';
 import ora from 'ora';
 import chalk from 'chalk';
 import { loadConfig } from './config.js';
-import { runInit } from './init.js';
+import { runInit, runConfig } from './init.js';
 import { scan } from './scanner.js';
 import { read as readPlist } from './plist-reader.js';
+import { read as readManifest } from './manifest-reader.js';
 import { read as readPubspec } from './pubspec-reader.js';
 import { audit } from './auditor.js';
 import { fetchGuidelines } from './guidelines.js';
@@ -26,11 +27,20 @@ const DEFAULTS = {
   claude: { model: 'claude-sonnet-4-6', envKey: 'ANTHROPIC_API_KEY' },
 };
 
+function detectPlatform(projectDir) {
+  const hasIos = existsSync(join(projectDir, 'ios'));
+  const hasAndroid = existsSync(join(projectDir, 'android'));
+  if (hasIos && hasAndroid) return 'both';
+  if (hasIos) return 'ios';
+  if (hasAndroid) return 'android';
+  return 'both'; // default
+}
+
 const program = new Command();
 
 program
   .name('shipli')
-  .description('AI-powered App Store review audit for Flutter projects')
+  .description('AI-powered store review audit for Flutter projects')
   .version(pkg.version);
 
 // Init subcommand
@@ -39,6 +49,15 @@ program
   .description('Create a .shipli config file in the current directory')
   .action(async () => {
     await runInit();
+    process.exit(0);
+  });
+
+// Config subcommand
+program
+  .command('config')
+  .description('Update provider, model, or API key in .shipli')
+  .action(async () => {
+    await runConfig();
     process.exit(0);
   });
 
@@ -52,6 +71,7 @@ program
   .option('--model <model>', 'Model to use (defaults per provider)')
   .option('--type <type>', 'Project type: app or package (auto-detected if omitted)')
   .option('--mode <mode>', 'Audit mode: store, code, or both', 'both')
+  .option('--platform <platform>', 'Target: ios, android, or both (auto-detected if omitted)')
   .action(async (opts) => {
     const projectDir = resolve(opts.dir);
 
@@ -88,6 +108,12 @@ program
       process.exit(1);
     }
 
+    const platform = (opts.platform || config.platform || detectPlatform(projectDir)).toLowerCase();
+    if (!['ios', 'android', 'both'].includes(platform)) {
+      console.error(chalk.red(`Error: --platform must be "ios", "android", or "both", got "${platform}".`));
+      process.exit(1);
+    }
+
     const apiKey = opts.key || config.key || process.env[DEFAULTS[provider].envKey];
     const model = opts.model || config.model || DEFAULTS[provider].model;
 
@@ -98,7 +124,8 @@ program
       process.exit(1);
     }
 
-    let spinner = ora({ text: 'Scanning Flutter project...', color: 'cyan' }).start();
+    const platformLabel = { ios: 'iOS', android: 'Android', both: 'iOS + Android' }[platform];
+    let spinner = ora({ text: `Scanning Flutter project (${platformLabel})...`, color: 'cyan' }).start();
 
     try {
       // 1. Read pubspec.yaml first (needed for type detection)
@@ -107,7 +134,7 @@ program
 
       // 2. Resolve project type: CLI flag > config > auto-detect from pubspec
       const projectType = opts.type || config.type || pubspec.projectType;
-      spinner.text = `Detected project type: ${chalk.cyan(projectType)}`;
+      spinner.text = `Detected: ${chalk.cyan(projectType)} / ${chalk.cyan(platformLabel)}`;
 
       // 3. Scan Dart files
       spinner.text = 'Scanning Dart files...';
@@ -122,23 +149,41 @@ program
         exampleFiles = exampleResult.files;
       }
 
-      // 5. Read Info.plist (skip for packages)
+      // 5. Read platform-specific permission files
       let plistData = { found: false, permissions: {}, bundleId: null };
-      if (projectType === 'app') {
+      let manifestData = { found: false, permissions: [], packageName: null };
+
+      if (projectType === 'app' && (platform === 'ios' || platform === 'both')) {
         spinner.text = 'Reading Info.plist...';
         plistData = await readPlist(projectDir);
       }
 
-      // 6. Fetch Apple guidelines (for store and both modes)
-      let guidelines = null;
+      if (projectType === 'app' && (platform === 'android' || platform === 'both')) {
+        spinner.text = 'Reading AndroidManifest.xml...';
+        manifestData = await readManifest(projectDir);
+      }
+
+      // 6. Load store guidelines (for store and both modes)
+      let appleGuidelines = null;
+      let googleGuidelines = null;
+
       if (mode !== 'code') {
-        spinner.text = 'Fetching Apple App Store guidelines...';
-        guidelines = await fetchGuidelines();
-        if (guidelines.warning) {
-          spinner.warn(chalk.yellow(guidelines.warning));
-          spinner = ora({ text: '', color: 'cyan' }).start();
-        } else {
-          spinner.text = `Guidelines loaded (${guidelines.source}, ${guidelines.age})`;
+        if (platform === 'ios' || platform === 'both') {
+          spinner.text = 'Loading App Store guidelines...';
+          appleGuidelines = await fetchGuidelines('apple');
+          if (appleGuidelines.warning) {
+            spinner.warn(chalk.yellow(appleGuidelines.warning));
+            spinner = ora({ text: '', color: 'cyan' }).start();
+          }
+        }
+
+        if (platform === 'android' || platform === 'both') {
+          spinner.text = 'Loading Play Store guidelines...';
+          googleGuidelines = await fetchGuidelines('google');
+          if (googleGuidelines.warning) {
+            spinner.warn(chalk.yellow(googleGuidelines.warning));
+            spinner = ora({ text: '', color: 'cyan' }).start();
+          }
         }
       }
 
@@ -150,26 +195,30 @@ program
           files,
           exampleFiles,
           permissions: plistData.permissions,
+          androidPermissions: manifestData.permissions,
           pubspec,
-          plistFound: plistData.found,
+          plistFound: (platform === 'ios' || platform === 'both') ? plistData.found : undefined,
+          androidManifestFound: (platform === 'android' || platform === 'both') ? manifestData.found : undefined,
           projectType,
-          guidelines,
+          appleGuidelines,
+          googleGuidelines,
         },
-        { apiKey, model, provider, mode },
+        { apiKey, model, provider, mode, platform },
       );
 
       spinner.stop();
 
-      // 7. Print report
+      // 8. Print report
       printReport(result, {
         projectType,
         projectName: pubspec.name,
         provider,
         model,
         mode,
+        platform,
       });
 
-      // 8. Exit with appropriate code
+      // 9. Exit with appropriate code
       process.exit(result.score === 'FAIL' ? 1 : 0);
     } catch (err) {
       spinner.fail(chalk.red(err.message));

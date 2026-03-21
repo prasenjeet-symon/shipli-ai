@@ -19,6 +19,7 @@
       <a href="#features">Features</a>
       <a href="#how-it-works">How it Works</a>
       <a href="#stores">Stores</a>
+      <a href="#mcp">MCP</a>
       <a href="docs.html">Docs</a>
       <a href="https://github.com/prasenjeet-symon/shipli-ai" class="btn-sm">GitHub</a>
     </div>
@@ -183,8 +184,57 @@
   </div>
 </section>
 
+<!-- MCP Server -->
+<section id="mcp" style="background: var(--bg-subtle);">
+  <div class="container">
+    <div class="section-header">
+      <h2>Works inside your AI editor</h2>
+      <p>Shipli ships with a built-in MCP server. Claude Code, Cursor, and Windsurf can run audits directly in your editor.</p>
+    </div>
+    <div class="store-grid">
+      <div class="store-card">
+        <div class="store-card-header">
+          <span style="font-size:1.5rem;">&#x1F527;</span>
+          <h3>shipli_store_audit</h3>
+        </div>
+        <div class="store-card-body">
+          <p>Run store compliance checks against Apple App Store and Google Play guidelines. Returns PASS / WARNING / FAIL with guideline citations.</p>
+          <p style="margin-top: 8px; font-size: 0.85rem; color: var(--text-dim);">Parameters: <code>projectDir</code>, <code>platform</code> (optional)</p>
+        </div>
+      </div>
+      <div class="store-card">
+        <div class="store-card-header">
+          <span style="font-size:1.5rem;">&#x1F50D;</span>
+          <h3>shipli_code_review</h3>
+        </div>
+        <div class="store-card-body">
+          <p>Run code quality and security review. Checks architecture, error handling, performance, dependencies, and vulnerabilities.</p>
+          <p style="margin-top: 8px; font-size: 0.85rem; color: var(--text-dim);">Parameters: <code>projectDir</code></p>
+        </div>
+      </div>
+    </div>
+    <div style="max-width: 600px; margin: 32px auto 0;">
+      <div class="code-block">
+        <span class="dim"># Add to your MCP config (~/.claude/.mcp.json)</span><br>
+        {<br>
+        &nbsp;&nbsp;"mcpServers": {<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;"shipli": {<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"command": "shipli-mcp",<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"env": {<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"SHIPLI_PROVIDER": "claude",<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"SHIPLI_MODEL": "claude-haiku-4-5",<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"ANTHROPIC_API_KEY": "your-key"<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+        &nbsp;&nbsp;}<br>
+        }
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- Quick start -->
-<section style="background: var(--bg-subtle);">
+<section>
   <div class="container">
     <div class="section-header">
       <h2>Get started in 30 seconds</h2>

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shipli Docs — Documentation</title>
+  <meta name="description" content="Complete documentation for Shipli — the AI-powered store audit CLI for Flutter.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <div class="container">
+    <a href="index.html" class="nav-logo"><span>&#x1f6e1;</span> Shipli</a>
+    <div class="nav-links">
+      <a href="index.html">Home</a>
+      <a href="index.html#features">Features</a>
+      <a href="docs.html" style="color: var(--accent);">Docs</a>
+      <a href="https://github.com/prasenjeet-symon/shipli-ai" class="btn-sm">GitHub</a>
+    </div>
+    <button class="mobile-toggle">&#x2630;</button>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="docs-layout">
+
+    <!-- Sidebar -->
+    <aside class="docs-sidebar">
+      <h4>Getting Started</h4>
+      <a href="#installation">Installation</a>
+      <a href="#quick-start">Quick Start</a>
+      <a href="#commands">Commands</a>
+      <h4>Configuration</h4>
+      <a href="#options">Options</a>
+      <a href="#config-file">Config File</a>
+      <a href="#models">Supported Models</a>
+      <h4>Audit Modes</h4>
+      <a href="#modes">Store / Code / Both</a>
+      <a href="#platforms">Platform Targeting</a>
+      <a href="#packages">Package Auditing</a>
+      <h4>Integration</h4>
+      <a href="#ci">CI / CD</a>
+      <a href="#token-limits">Token Limits</a>
+    </aside>
+
+    <!-- Content -->
+    <main class="docs-content">
+
+      <h2 id="installation">Installation</h2>
+      <p>Install Shipli globally via npm. Requires <strong>Node.js 18+</strong>.</p>
+      <div class="code-block">
+        $ npm install -g @prasenjeet/shipli
+      </div>
+      <p>Verify the installation:</p>
+      <div class="code-block">
+        $ shipli --version<br>
+        1.0.0
+      </div>
+
+      <h2 id="quick-start">Quick Start</h2>
+      <p>Set up your AI provider and API key, then run your first audit:</p>
+      <div class="code-block">
+        <span style="color:var(--text-dim)"># Interactive setup &mdash; select provider, model, enter API key</span><br>
+        $ shipli init<br><br>
+        <span style="color:var(--text-dim)"># Run the audit (auto-detects platform and project type)</span><br>
+        $ shipli --dir /path/to/flutter/project
+      </div>
+      <p>Or pass everything inline without a config file:</p>
+      <div class="code-block">
+        $ shipli --dir ./ --provider claude --key YOUR_API_KEY
+      </div>
+
+      <h2 id="commands">Commands</h2>
+      <table>
+        <thead><tr><th>Command</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>shipli init</code></td><td>Create a <code>.shipli</code> config file interactively (provider, model, API key)</td></tr>
+          <tr><td><code>shipli config</code></td><td>Update provider, model, or API key in an existing <code>.shipli</code></td></tr>
+          <tr><td><code>shipli --dir &lt;path&gt;</code></td><td>Run the audit (default command)</td></tr>
+          <tr><td><code>shipli --help</code></td><td>Show all options</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="options">Options Reference</h2>
+      <table>
+        <thead><tr><th>Flag</th><th>Description</th><th>Default</th></tr></thead>
+        <tbody>
+          <tr><td><code>--dir &lt;path&gt;</code></td><td>Path to Flutter project root</td><td><em>required</em></td></tr>
+          <tr><td><code>--key &lt;key&gt;</code></td><td>API key</td><td><code>.shipli</code> / env var</td></tr>
+          <tr><td><code>--provider &lt;name&gt;</code></td><td><code>gemini</code> or <code>claude</code></td><td><code>gemini</code></td></tr>
+          <tr><td><code>--model &lt;model&gt;</code></td><td>Model override</td><td>Per provider default</td></tr>
+          <tr><td><code>--type &lt;type&gt;</code></td><td><code>app</code> or <code>package</code></td><td>Auto-detected</td></tr>
+          <tr><td><code>--mode &lt;mode&gt;</code></td><td><code>store</code>, <code>code</code>, or <code>both</code></td><td><code>both</code></td></tr>
+          <tr><td><code>--platform &lt;platform&gt;</code></td><td><code>ios</code>, <code>android</code>, or <code>both</code></td><td>Auto-detected</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="config-file">Configuration File</h2>
+      <p>Run <code>shipli init</code> to create a <code>.shipli</code> config file, or create one manually:</p>
+      <div class="code-block">
+{<br>
+&nbsp;&nbsp;"provider": "claude",<br>
+&nbsp;&nbsp;"key": "sk-ant-...",<br>
+&nbsp;&nbsp;"model": "claude-sonnet-4-6",<br>
+&nbsp;&nbsp;"platform": "both",<br>
+&nbsp;&nbsp;"mode": "both"<br>
+}
+      </div>
+      <h3>Resolution Order</h3>
+      <p>Values are resolved in this order (highest priority wins):</p>
+      <ol style="color: var(--text-muted); padding-left: 20px; margin-bottom: 16px;">
+        <li>CLI flags (<code>--key</code>, <code>--provider</code>, etc.)</li>
+        <li>Project-level <code>.shipli</code> (in the <code>--dir</code> path)</li>
+        <li>Global <code>~/.shipli</code> (home directory)</li>
+        <li>Environment variables (<code>GEMINI_API_KEY</code> / <code>ANTHROPIC_API_KEY</code>)</li>
+        <li>Built-in defaults</li>
+      </ol>
+      <blockquote>Add <code>.shipli</code> to your <code>.gitignore</code> &mdash; it contains your API key.</blockquote>
+      <p>Use <code>shipli config</code> to update settings anytime via interactive arrow-key menus.</p>
+
+      <h2 id="models">Supported Models</h2>
+      <h3>Claude (Anthropic)</h3>
+      <table>
+        <thead><tr><th>Model</th><th>Tier</th></tr></thead>
+        <tbody>
+          <tr><td><code>claude-sonnet-4-6</code></td><td>Recommended &mdash; balanced flagship</td></tr>
+          <tr><td><code>claude-opus-4-6</code></td><td>Frontier &mdash; highest reasoning</td></tr>
+          <tr><td><code>claude-haiku-4-5</code></td><td>Fastest &amp; cheapest</td></tr>
+          <tr><td><code>claude-opus-4-5</code></td><td>Frontier intelligence</td></tr>
+          <tr><td><code>claude-sonnet-4-5</code></td><td>Balanced &mdash; enterprise</td></tr>
+          <tr><td><code>claude-opus-4-1</code></td><td>Advanced reasoning</td></tr>
+          <tr><td><code>claude-opus-4</code></td><td>Advanced reasoning</td></tr>
+          <tr><td><code>claude-sonnet-4</code></td><td>Balanced</td></tr>
+          <tr><td><code>claude-sonnet-3-7</code></td><td>Legacy &mdash; balanced</td></tr>
+          <tr><td><code>claude-haiku-3-5</code></td><td>Legacy &mdash; fast</td></tr>
+          <tr><td><code>claude-sonnet-3-5</code></td><td>Legacy &mdash; balanced</td></tr>
+        </tbody>
+      </table>
+      <h3>Gemini (Google)</h3>
+      <table>
+        <thead><tr><th>Model</th><th>Tier</th></tr></thead>
+        <tbody>
+          <tr><td><code>gemini-3.1-pro</code></td><td>Frontier &mdash; advanced reasoning, 1M context</td></tr>
+          <tr><td><code>gemini-3.1-flash-lite</code></td><td>Ultra-efficient &mdash; lowest latency</td></tr>
+          <tr><td><code>gemini-3-flash</code></td><td>High-performance multimodal + coding</td></tr>
+          <tr><td><code>gemini-2.5-flash</code></td><td>Recommended &mdash; fast &amp; cheap</td></tr>
+          <tr><td><code>gemini-2.5-pro</code></td><td>Strong reasoning + multimodal</td></tr>
+          <tr><td><code>gemini-2.5-flash-lite</code></td><td>Lightweight &mdash; high-volume</td></tr>
+          <tr><td><code>gemini-1.5-pro</code></td><td>Legacy &mdash; early multimodal</td></tr>
+          <tr><td><code>gemini-1.5-flash</code></td><td>Legacy &mdash; fast</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="modes">Audit Modes</h2>
+      <h3><code>--mode store</code></h3>
+      <p>Checks only store compliance: permissions, privacy, IAP, legal, content policy. Loads bundled Apple/Google guidelines as grounding context. Best for pre-submission checks.</p>
+      <div class="code-block">$ shipli --dir ./ --mode store</div>
+
+      <h3><code>--mode code</code></h3>
+      <p>Checks only code quality: security, architecture, error handling, performance, best practices, dependencies. Skips guideline loading entirely.</p>
+      <div class="code-block">$ shipli --dir ./ --mode code</div>
+
+      <h3><code>--mode both</code> (default)</h3>
+      <p>Runs both store compliance and code quality checks in a single audit. Uses more tokens but gives the most comprehensive report.</p>
+      <div class="code-block">$ shipli --dir ./</div>
+
+      <h2 id="platforms">Platform Targeting</h2>
+      <p>Shipli auto-detects the target platform by checking for <code>ios/</code> and <code>android/</code> directories. Override with <code>--platform</code>:</p>
+      <div class="code-block">
+        <span style="color:var(--text-dim)"># iOS App Store only</span><br>
+        $ shipli --dir ./ --platform ios<br><br>
+        <span style="color:var(--text-dim)"># Google Play only</span><br>
+        $ shipli --dir ./ --platform android<br><br>
+        <span style="color:var(--text-dim)"># Both stores</span><br>
+        $ shipli --dir ./ --platform both
+      </div>
+      <table>
+        <thead><tr><th>Platform</th><th>Reads</th><th>Guidelines</th></tr></thead>
+        <tbody>
+          <tr><td><code>ios</code></td><td><code>Info.plist</code></td><td>Apple App Store Review Guidelines</td></tr>
+          <tr><td><code>android</code></td><td><code>AndroidManifest.xml</code></td><td>Google Play Developer Policies</td></tr>
+          <tr><td><code>both</code></td><td>Both files</td><td>Both guidelines</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="packages">Package Auditing</h2>
+      <p>Shipli auto-detects Flutter packages/plugins from <code>flutter: plugin:</code> in <code>pubspec.yaml</code>. Package audits focus on:</p>
+      <ul style="color: var(--text-muted); padding-left: 20px; margin-bottom: 16px;">
+        <li>API surface &amp; documentation quality</li>
+        <li>Platform declarations (MethodChannel consistency)</li>
+        <li>Consumer permissions guidance</li>
+        <li>Dependency hygiene</li>
+        <li>Example app quality</li>
+      </ul>
+      <p>If the package has an <code>example/</code> directory, Shipli scans it too.</p>
+      <div class="code-block">
+        <span style="color:var(--text-dim)"># Force package mode</span><br>
+        $ shipli --dir ./my-plugin --type package
+      </div>
+
+      <h2 id="ci">CI / CD Integration</h2>
+      <p>Shipli exits with code <code>1</code> on FAIL and <code>0</code> on PASS/WARNING, making it easy to gate deployments.</p>
+      <h3>GitHub Actions</h3>
+      <div class="code-block">
+name: Shipli Audit<br>
+on: [push]<br>
+jobs:<br>
+&nbsp;&nbsp;audit:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;runs-on: ubuntu-latest<br>
+&nbsp;&nbsp;&nbsp;&nbsp;steps:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- uses: actions/checkout@v4<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- uses: actions/setup-node@v4<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;with:<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;node-version: 20<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- run: npx @prasenjeet/shipli --dir ./ --provider claude --key ${{ '{{' }} secrets.ANTHROPIC_API_KEY {{ '}}' }}
+      </div>
+
+      <h2 id="token-limits">Token Limits</h2>
+      <p>Shipli estimates input token count before calling the AI and applies safety checks:</p>
+      <table>
+        <thead><tr><th>Provider</th><th>Context Window</th><th>Safe Input Limit</th></tr></thead>
+        <tbody>
+          <tr><td>Claude</td><td>200K tokens</td><td>~150K (50K reserved for output)</td></tr>
+          <tr><td>Gemini</td><td>1M tokens</td><td>~900K (100K reserved for output)</td></tr>
+        </tbody>
+      </table>
+      <p>At <strong>80%</strong> of the limit, you'll see a yellow warning. Above <strong>100%</strong>, Shipli stops with an error and suggests narrowing scope:</p>
+      <div class="code-block">
+        <span style="color:var(--text-dim)"># Reduce tokens by targeting one platform</span><br>
+        $ shipli --dir ./ --platform ios<br><br>
+        <span style="color:var(--text-dim)"># Or one mode</span><br>
+        $ shipli --dir ./ --mode store
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="links">
+      <a href="https://www.npmjs.com/package/@prasenjeet/shipli">npm</a>
+      <a href="https://github.com/prasenjeet-symon/shipli-ai">GitHub</a>
+      <a href="index.html">Home</a>
+    </div>
+    <p>MIT License &copy; 2026 &mdash; Built for Flutter developers</p>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

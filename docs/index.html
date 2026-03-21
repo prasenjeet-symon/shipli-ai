@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shipli — AI-Powered Store Audit for Flutter</title>
+  <meta name="description" content="Catch App Store and Play Store rejections before you submit. Shipli audits your Flutter code against live store guidelines using AI.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <div class="container">
+    <a href="/" class="nav-logo"><span>&#x1f6e1;</span> Shipli</a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How it Works</a>
+      <a href="#stores">Stores</a>
+      <a href="docs.html">Docs</a>
+      <a href="https://github.com/prasenjeet-symon/shipli-ai" class="btn-sm">GitHub</a>
+    </div>
+    <button class="mobile-toggle">&#x2630;</button>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">
+      <span>v1.0.0</span> &mdash; Now with Apple App Store + Google Play support
+    </div>
+    <h1>
+      Stop guessing.<br>
+      <span class="gradient">Ship with confidence.</span>
+    </h1>
+    <p>AI-powered store compliance &amp; code quality audits for Flutter apps. Catch rejections before you submit.</p>
+    <div class="install-box">
+      <code><span class="dollar">$</span> npm install -g @prasenjeet/shipli</code>
+      <button class="copy-btn" data-copy="npm install -g @prasenjeet/shipli">Copy</button>
+    </div>
+
+    <!-- Terminal mockup -->
+    <div class="terminal">
+      <div class="terminal-header">
+        <div class="terminal-dot red"></div>
+        <div class="terminal-dot yellow"></div>
+        <div class="terminal-dot green"></div>
+      </div>
+      <div class="terminal-body" data-lines='[
+        "<span class=\"dim\">$</span> <span class=\"bold\">shipli</span> --dir ./my-flutter-app --mode store",
+        "",
+        "<span class=\"dim\">  \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510</span>",
+        "<span class=\"dim\">  \u2502</span> <span class=\"bold\">Shipli</span> <span class=\"dim\">\u2014 Store Compliance Report</span> <span class=\"dim\">\u2502</span>",
+        "<span class=\"dim\">  \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518</span>",
+        "",
+        "  Result:  <span class=\"green bold\"> PASS </span>",
+        "",
+        "  <span class=\"green\">\u2714</span>  <span class=\"bold\">Camera permission declared</span> <span class=\"dim\">[5.1.1]</span>",
+        "  <span class=\"green\">\u2714</span>  <span class=\"bold\">StoreKit IAP used correctly</span> <span class=\"dim\">[3.1.1]</span>",
+        "  <span class=\"yellow\">\u26a0</span>  <span class=\"bold\">ATT dialog not detected</span> <span class=\"dim\">[5.1.2]</span>",
+        "  <span class=\"green\">\u2714</span>  <span class=\"bold\">Privacy policy present</span> <span class=\"dim\">[5.1.1]</span>",
+        "",
+        "  <span class=\"green\">3 passed</span>  <span class=\"dim\">\u00b7</span>  <span class=\"yellow\">1 warning</span>  <span class=\"dim\">\u00b7</span>  <span class=\"red\">0 failed</span>"
+      ]'>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features">
+  <div class="container">
+    <div class="section-header">
+      <h2>Everything you need to ship</h2>
+      <p>One command. Two stores. Zero surprises at review time.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">&#x1F3AF;</div>
+        <h3>Dual Store Support</h3>
+        <p>Audit against Apple App Store and Google Play guidelines simultaneously &mdash; or target one platform at a time.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#x1F50D;</div>
+        <h3>Two Audit Modes</h3>
+        <p><code>--mode store</code> for compliance checks, <code>--mode code</code> for quality reviews, or both at once.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#x1F916;</div>
+        <h3>Multi-Provider AI</h3>
+        <p>Choose Claude (Anthropic) or Gemini (Google) as your AI backend. 19 models supported.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#x1F4CB;</div>
+        <h3>Bundled Guidelines</h3>
+        <p>Ships with the latest Apple &amp; Google Play policies. No network needed &mdash; works fully offline.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#x2699;&#xFE0F;</div>
+        <h3>Auto-Detection</h3>
+        <p>Detects app vs package from <code>pubspec.yaml</code> and iOS/Android from project structure. Zero config needed.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">&#x1F3D7;&#xFE0F;</div>
+        <h3>CI-Friendly</h3>
+        <p>Exit code <code>1</code> on FAIL, <code>0</code> on PASS/WARNING. Drop it into GitHub Actions or any CI pipeline.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section id="how-it-works" style="background: var(--bg-subtle);">
+  <div class="container">
+    <div class="section-header">
+      <h2>How it works</h2>
+      <p>Six steps from source code to actionable audit report.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <h3>Detect</h3>
+        <p>Auto-detects project type (app/package) and platform (iOS/Android) from your project structure.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <h3>Scan</h3>
+        <p>Recursively scans <code>lib/</code> using 90+ signal patterns to extract the architectural skeleton.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <h3>Gather Metadata</h3>
+        <p>Reads <code>Info.plist</code>, <code>AndroidManifest.xml</code>, and <code>pubspec.yaml</code> for permissions and dependencies.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">4</div>
+        <h3>Load Guidelines</h3>
+        <p>Injects bundled Apple App Store Review Guidelines and Google Play Developer Policies.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">5</div>
+        <h3>AI Audit</h3>
+        <p>Sends evidence to Claude or Gemini with a tailored system prompt citing specific guideline sections.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">6</div>
+        <h3>Report</h3>
+        <p>Outputs a clear Pass/Warning/Fail checklist with guideline references and recommendations.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Stores -->
+<section id="stores">
+  <div class="container">
+    <div class="section-header">
+      <h2>What it checks</h2>
+      <p>Comprehensive audit categories for both stores and code quality.</p>
+    </div>
+    <div class="store-grid">
+      <div class="store-card">
+        <div class="store-card-header">
+          <span style="font-size:1.5rem;">&#x1F34E;</span>
+          <h3>App Store (iOS)</h3>
+        </div>
+        <div class="store-card-body">
+          <ul>
+            <li>Privacy &amp; Permissions (Info.plist)</li>
+            <li>Data Collection &amp; App Tracking Transparency</li>
+            <li>Content &amp; Design (minimum functionality)</li>
+            <li>In-App Purchases (StoreKit/IAP)</li>
+            <li>Legal &amp; Compliance (COPPA, encryption)</li>
+            <li>Forbidden Patterns (code push, dynamic loading)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="store-card">
+        <div class="store-card-header">
+          <span style="font-size:1.5rem;">&#x1F4F1;</span>
+          <h3>Play Store (Android)</h3>
+        </div>
+        <div class="store-card-body">
+          <ul>
+            <li>Permissions &amp; Data Safety declarations</li>
+            <li>Data Collection &amp; Privacy policy</li>
+            <li>Content &amp; Behavior (restricted content)</li>
+            <li>Billing &amp; Monetization (Play Billing Library)</li>
+            <li>Target API Level &amp; Compatibility</li>
+            <li>Malware &amp; Abuse detection</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Quick start -->
+<section style="background: var(--bg-subtle);">
+  <div class="container">
+    <div class="section-header">
+      <h2>Get started in 30 seconds</h2>
+    </div>
+    <div style="max-width: 600px; margin: 0 auto;">
+      <div class="code-block">
+        <span class="dim"># Install globally</span><br>
+        <span class="cyan">$</span> npm install -g @prasenjeet/shipli<br><br>
+        <span class="dim"># One-time setup</span><br>
+        <span class="cyan">$</span> shipli init<br><br>
+        <span class="dim"># Run the audit</span><br>
+        <span class="cyan">$</span> shipli --dir ./my-flutter-app
+      </div>
+      <p style="text-align: center; margin-top: 24px;">
+        <a href="docs.html" style="font-weight: 600;">Read the full documentation &rarr;</a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <div class="links">
+      <a href="https://www.npmjs.com/package/@prasenjeet/shipli">npm</a>
+      <a href="https://github.com/prasenjeet-symon/shipli-ai">GitHub</a>
+      <a href="docs.html">Docs</a>
+    </div>
+    <p>MIT License &copy; 2026 &mdash; Built for Flutter developers</p>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

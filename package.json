@@ -1,10 +1,11 @@
 {
   "name": "@prasenjeet/shipli",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "AI-powered App Store review audit for Flutter projects. Catch rejections before you submit.",
   "type": "module",
   "bin": {
-    "shipli": "src/index.js"
+    "shipli": "src/index.js",
+    "shipli-mcp": "src/mcp-server.js"
   },
   "files": [
     "src",
@@ -32,11 +33,13 @@
     "url": ""
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "chalk": "^5.4.1",
     "commander": "^13.1.0",
     "fast-glob": "^3.3.3",
     "js-yaml": "^4.1.0",
     "ora": "^8.2.0",
-    "plist": "^3.1.0"
+    "plist": "^3.1.0",
+    "zod": "^4.3.6"
   }
 }

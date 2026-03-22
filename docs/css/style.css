@@ -106,14 +106,19 @@ nav .container {
   justify-content: center;
 }
 
-/* Subtle radial glow behind logo */
+/* Background logo image — dimmed, centered */
 .hero::after {
   content: '';
   position: absolute;
-  top: 20%; left: 50%; transform: translateX(-50%);
-  width: 700px; height: 500px;
-  background: radial-gradient(ellipse, rgba(160, 48, 224, 0.1) 0%, rgba(255, 45, 149, 0.05) 40%, transparent 70%);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -55%);
+  width: 700px; height: 700px;
+  max-width: 100vw;
+  background: url('../assets/shipli-trans.png') no-repeat center center;
+  background-size: contain;
+  opacity: 0.12;
   pointer-events: none;
+  animation: float 6s ease-in-out infinite;
 }
 
 /* Retro grid floor */
@@ -137,18 +142,9 @@ nav .container {
   z-index: 1;
 }
 
-.hero-logo {
-  width: 500px;
-  max-width: 90vw;
-  height: auto;
-  margin-bottom: 40px;
-  filter: drop-shadow(0 0 20px rgba(160, 48, 224, 0.25));
-  animation: float 5s ease-in-out infinite;
-}
-
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+  0%, 100% { transform: translate(-50%, -55%); }
+  50% { transform: translate(-50%, -58%); }
 }
 
 .hero-badge {
@@ -381,8 +377,8 @@ footer p {
   .mobile-toggle { display: block; }
   section { padding: 60px 0; }
   .hero { padding: 100px 0 40px; min-height: auto; }
+  .hero::after { width: 400px; height: 400px; }
   .hero h1 { font-size: 1rem; }
-  .hero-logo { width: 280px; }
   .hero-subtitle { font-size: 1rem; }
   .store-grid { grid-template-columns: 1fr; }
   .features-grid { grid-template-columns: 1fr; }

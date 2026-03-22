@@ -235,6 +235,24 @@ The assistant will call the appropriate Shipli MCP tool and return the results i
 
 The CLI exits with code `1` on failure, making it easy to gate deployments.
 
+## Telemetry
+
+Shipli collects anonymous usage metrics to help improve the tool. No project data, file contents, API keys, or personally identifiable information is ever collected.
+
+**What's collected:** audit mode, platform, provider, model, pass/fail score, duration, token counts, OS, and CLI version.
+
+**Opt out** using any of these methods:
+
+```bash
+# Environment variable
+export SHIPLI_TELEMETRY=off
+
+# Or use the Do Not Track standard
+export DO_NOT_TRACK=1
+```
+
+Or add `"telemetry": false` to your `~/.shipli` config file.
+
 ## License
 
 MIT

@@ -17,24 +17,12 @@ import { read as readPubspec } from './pubspec-reader.js';
 import { audit } from './auditor.js';
 import { fetchGuidelines } from './guidelines.js';
 import { print as printReport } from './reporter.js';
+import { PROVIDER_DEFAULTS as DEFAULTS, detectPlatform } from './defaults.js';
+import { trackEvent } from './telemetry.js';
 
 // Read package version
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(await readFile(join(__dirname, '..', 'package.json'), 'utf-8'));
-
-const DEFAULTS = {
-  gemini: { model: 'gemini-2.5-flash', envKey: 'GEMINI_API_KEY' },
-  claude: { model: 'claude-sonnet-4-6', envKey: 'ANTHROPIC_API_KEY' },
-};
-
-function detectPlatform(projectDir) {
-  const hasIos = existsSync(join(projectDir, 'ios'));
-  const hasAndroid = existsSync(join(projectDir, 'android'));
-  if (hasIos && hasAndroid) return 'both';
-  if (hasIos) return 'ios';
-  if (hasAndroid) return 'android';
-  return 'both'; // default
-}
 
 const program = new Command();
 
@@ -126,6 +114,7 @@ program
 
     const platformLabel = { ios: 'iOS', android: 'Android', both: 'iOS + Android' }[platform];
     let spinner = ora({ text: `Scanning Flutter project (${platformLabel})...`, color: 'cyan' }).start();
+    const startTime = Date.now();
 
     try {
       // 1. Read pubspec.yaml first (needed for type detection)
@@ -218,11 +207,23 @@ program
         platform,
       });
 
-      // 9. Exit with appropriate code
-      process.exit(result.score === 'FAIL' ? 1 : 0);
+      // 9. Track and exit
+      trackEvent('audit_completed', {
+        source: 'cli', mode, platform, provider, model,
+        project_type: projectType, score: result.score,
+        duration_ms: Date.now() - startTime,
+        tokens_input: result._tokens?.actual?.input ?? null,
+        tokens_output: result._tokens?.actual?.output ?? null,
+      });
+      process.exitCode = result.score === 'FAIL' ? 1 : 0;
     } catch (err) {
       spinner.fail(chalk.red(err.message));
-      process.exit(1);
+      trackEvent('audit_error', {
+        source: 'cli', mode, platform, provider, model,
+        duration_ms: Date.now() - startTime,
+        error_message: err.message.slice(0, 200),
+      });
+      process.exitCode = 1;
     }
   });
 

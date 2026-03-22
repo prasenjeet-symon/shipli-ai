@@ -5,7 +5,7 @@ if (canvas) {
   let stars = [];
   let ships = [];
   const STAR_COUNT = 140;
-  const SHIP_COUNT = 18;
+  const SHIP_COUNT = 3;
 
   function resize() {
     canvas.width = window.innerWidth;
@@ -151,19 +151,23 @@ if (canvas) {
   function createShips() {
     ships = [];
     for (let i = 0; i < SHIP_COUNT; i++) {
+      const heading = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 0.8 + 0.5;
       ships.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.4,
-        vy: (Math.random() - 0.5) * 0.3,
+        vx: Math.cos(heading) * speed,
+        vy: Math.sin(heading) * speed,
         scale: (Math.random() * 0.045 + 0.045) * canvas.width / 16,
-        opacity: Math.random() * 0.25 + 0.1,
+        opacity: Math.random() * 0.2 + 0.15,
         tilt: (Math.random() - 0.5) * 0.3,
         angle: Math.random() * Math.PI * 2,
         blinkPhase: Math.random() * Math.PI * 2,
         blinkSpeed: Math.random() * 0.04 + 0.02,
         wobblePhase: Math.random() * Math.PI * 2,
-        wobbleSpeed: Math.random() * 0.008 + 0.003,
+        wobbleSpeed: Math.random() * 0.01 + 0.005,
+        turnTimer: Math.random() * 300 + 200,
+        turnCountdown: Math.random() * 300 + 200,
         design: 0,
       });
     }
@@ -200,15 +204,27 @@ if (canvas) {
       s.blinkPhase += s.blinkSpeed;
       s.wobblePhase += s.wobbleSpeed;
 
-      // Gentle floating movement
-      s.x += s.vx + Math.sin(s.wobblePhase) * 0.15;
-      s.y += s.vy + Math.cos(s.wobblePhase * 0.7) * 0.1;
+      // Roaming — periodically pick a new direction
+      s.turnCountdown--;
+      if (s.turnCountdown <= 0) {
+        const newHeading = Math.random() * Math.PI * 2;
+        const newSpeed = Math.random() * 0.8 + 0.5;
+        s.vx = Math.cos(newHeading) * newSpeed;
+        s.vy = Math.sin(newHeading) * newSpeed;
+        s.turnCountdown = Math.random() * 400 + 200;
+        s.tilt = (Math.random() - 0.5) * 0.4;
+      }
+
+      // Smooth movement with wobble
+      s.x += s.vx + Math.sin(s.wobblePhase) * 0.3;
+      s.y += s.vy + Math.cos(s.wobblePhase * 0.7) * 0.2;
 
       // Wrap around edges
-      if (s.x < -30) s.x = canvas.width + 30;
-      if (s.x > canvas.width + 30) s.x = -30;
-      if (s.y < -30) s.y = canvas.height + 30;
-      if (s.y > canvas.height + 30) s.y = -30;
+      const margin = 60 * s.scale;
+      if (s.x < -margin) s.x = canvas.width + margin;
+      if (s.x > canvas.width + margin) s.x = -margin;
+      if (s.y < -margin) s.y = canvas.height + margin;
+      if (s.y > canvas.height + margin) s.y = -margin;
 
       shipDesigns[s.design](ctx, s);
     });

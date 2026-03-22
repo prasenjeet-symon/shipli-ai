@@ -226,21 +226,18 @@
         </div>
       </div>
     </div>
-    <div style="max-width: 600px; margin: 32px auto 0;">
+    <div style="max-width: 680px; margin: 32px auto 0;">
       <div class="code-block">
-        <span class="dim"># Add to your MCP config (~/.claude/.mcp.json)</span><br>
-        {<br>
-        &nbsp;&nbsp;"mcpServers": {<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;"shipli": {<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"command": "shipli-mcp",<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"env": {<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"SHIPLI_PROVIDER": "claude",<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"SHIPLI_MODEL": "claude-haiku-4-5",<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"ANTHROPIC_API_KEY": "your-key"<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br>
-        &nbsp;&nbsp;&nbsp;&nbsp;}<br>
-        &nbsp;&nbsp;}<br>
-        }
+        <span class="dim"># 1. Install globally</span><br>
+        <span style="color: var(--neon-cyan);">$</span> npm install -g @prasenjeet/shipli<br><br>
+        <span class="dim"># 2. Add the MCP server (one command)</span><br>
+        <span style="color: var(--neon-cyan);">$</span> claude mcp add shipli \<br>
+        &nbsp;&nbsp;--transport stdio \<br>
+        &nbsp;&nbsp;--env SHIPLI_PROVIDER=claude \<br>
+        &nbsp;&nbsp;--env SHIPLI_MODEL=claude-haiku-4-5 \<br>
+        &nbsp;&nbsp;--env ANTHROPIC_API_KEY=your-api-key \<br>
+        &nbsp;&nbsp;-- shipli-mcp<br><br>
+        <span class="dim"># 3. Restart Claude Code or run /mcp</span>
       </div>
     </div>
   </div>

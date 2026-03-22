@@ -146,9 +146,41 @@ Use `shipli config` to update settings anytime.
 
 Shipli includes a built-in [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server, so AI coding assistants like Claude Code, Cursor, and Windsurf can run audits directly inside your editor.
 
-### Setup
+### Step 1 — Install globally
 
-Add to your MCP config (e.g. `~/.claude/.mcp.json`):
+```bash
+npm install -g @prasenjeet/shipli
+```
+
+Verify: `shipli --version` and `which shipli-mcp`.
+
+### Step 2 — Add the MCP server
+
+**Option A: Claude Code CLI (recommended)**
+
+```bash
+# Using Claude as the AI provider
+claude mcp add shipli \
+  --transport stdio \
+  --env SHIPLI_PROVIDER=claude \
+  --env SHIPLI_MODEL=claude-haiku-4-5 \
+  --env ANTHROPIC_API_KEY=your-api-key \
+  -- shipli-mcp
+```
+
+```bash
+# Using Gemini as the AI provider
+claude mcp add shipli \
+  --transport stdio \
+  --env SHIPLI_PROVIDER=gemini \
+  --env SHIPLI_MODEL=gemini-2.5-flash \
+  --env GEMINI_API_KEY=your-api-key \
+  -- shipli-mcp
+```
+
+**Option B: Manual JSON config**
+
+Add to `~/.claude/.mcp.json`:
 
 ```json
 {
@@ -165,7 +197,11 @@ Add to your MCP config (e.g. `~/.claude/.mcp.json`):
 }
 ```
 
-For Gemini, use `SHIPLI_PROVIDER: "gemini"` and set `GEMINI_API_KEY` instead.
+For Cursor/Windsurf, add the same config to your editor's MCP settings.
+
+### Step 3 — Restart and verify
+
+Restart Claude Code (or run `/mcp` in chat) to pick up the new server. You should see `shipli` listed with its two tools.
 
 ### Available Tools
 

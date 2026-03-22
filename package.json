@@ -28,9 +28,10 @@
   ],
   "author": "",
   "license": "MIT",
+  "homepage": "https://prasenjeet-symon.github.io/shipli-ai/",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/prasenjeet-symon/shipli-ai"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",

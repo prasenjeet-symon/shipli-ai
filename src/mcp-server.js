@@ -15,6 +15,7 @@ import { fetchGuidelines } from './guidelines.js';
 import { audit } from './auditor.js';
 import { loadConfig } from './config.js';
 import { PROVIDER_DEFAULTS, detectPlatform } from './defaults.js';
+import { trackEvent } from './telemetry.js';
 
 // ── Read package version ──
 
@@ -72,6 +73,7 @@ server.tool(
     platform: z.enum(['ios', 'android', 'both']).optional().describe('Target platform: "ios" (App Store only), "android" (Play Store only), or "both" (both stores). Auto-detected from ios/ and android/ directory presence if omitted.'),
   },
   async ({ projectDir, platform }) => {
+    const startTime = Date.now();
     try {
       const dir = validateProject(projectDir);
       const { provider, model, apiKey } = resolveConfig(dir);
@@ -124,10 +126,23 @@ server.tool(
         { apiKey, model, provider, mode: 'store', platform: resolvedPlatform },
       );
 
+      trackEvent('audit_completed', {
+        source: 'mcp', mode: 'store', platform: resolvedPlatform,
+        provider, model, project_type: projectType, score: result.score,
+        duration_ms: Date.now() - startTime,
+        tokens_input: result._tokens?.actual?.input ?? null,
+        tokens_output: result._tokens?.actual?.output ?? null,
+      });
+
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };
     } catch (err) {
+      trackEvent('audit_error', {
+        source: 'mcp', mode: 'store',
+        duration_ms: Date.now() - startTime,
+        error_message: err.message.slice(0, 200),
+      });
       return {
         content: [{ type: 'text', text: `Error: ${err.message}` }],
         isError: true,
@@ -145,6 +160,7 @@ server.tool(
     projectDir: z.string().describe('Absolute path to the Flutter project root directory. Must contain a pubspec.yaml and a lib/ folder. Example: "/Users/you/projects/my-flutter-app"'),
   },
   async ({ projectDir }) => {
+    const startTime = Date.now();
     try {
       const dir = validateProject(projectDir);
       const { provider, model, apiKey } = resolveConfig(dir);
@@ -176,10 +192,23 @@ server.tool(
         { apiKey, model, provider, mode: 'code', platform: 'both' },
       );
 
+      trackEvent('audit_completed', {
+        source: 'mcp', mode: 'code', platform: 'both',
+        provider, model, project_type: projectType, score: result.score,
+        duration_ms: Date.now() - startTime,
+        tokens_input: result._tokens?.actual?.input ?? null,
+        tokens_output: result._tokens?.actual?.output ?? null,
+      });
+
       return {
         content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
       };
     } catch (err) {
+      trackEvent('audit_error', {
+        source: 'mcp', mode: 'code',
+        duration_ms: Date.now() - startTime,
+        error_message: err.message.slice(0, 200),
+      });
       return {
         content: [{ type: 'text', text: `Error: ${err.message}` }],
         isError: true,

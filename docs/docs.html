@@ -53,6 +53,7 @@
       <h4>Integration</h4>
       <a href="#ci">CI / CD</a>
       <a href="#token-limits">Token Limits</a>
+      <a href="#telemetry">Telemetry</a>
     </aside>
 
     <!-- Content -->
@@ -349,6 +350,30 @@ jobs:<br>
         <span style="color:var(--text-dim)"># Or one mode</span><br>
         $ shipli --dir ./ --mode store
       </div>
+
+      <h2 id="telemetry">Telemetry</h2>
+      <p>Shipli collects anonymous usage metrics to help improve the tool. No project data, file contents, API keys, or personally identifiable information is ever collected.</p>
+
+      <h3>What's collected</h3>
+      <p>Audit mode, platform, provider, model, pass/fail score, duration, token counts, OS, and CLI version.</p>
+
+      <h3>What's NOT collected</h3>
+      <ul>
+        <li>Project paths, file names, or file contents</li>
+        <li>API keys or credentials</li>
+        <li>pubspec.yaml data or project names</li>
+        <li>Error stack traces</li>
+      </ul>
+
+      <h3>Opt out</h3>
+      <p>Disable telemetry using any of these methods:</p>
+      <div class="code-block">
+        <span style="color:var(--text-dim)"># Environment variable</span><br>
+        $ export SHIPLI_TELEMETRY=off<br><br>
+        <span style="color:var(--text-dim)"># Or use the Do Not Track standard</span><br>
+        $ export DO_NOT_TRACK=1
+      </div>
+      <p>Or add <code>"telemetry": false</code> to your <code>~/.shipli</code> config file.</p>
 
     </main>
   </div>

@@ -159,7 +159,7 @@ if (canvas) {
         y: Math.random() * canvas.height,
         vx: (Math.random() - 0.5) * 0.4,
         vy: (Math.random() - 0.5) * 0.3,
-        scale: Math.random() * 0.6 + 0.5,
+        scale: Math.random() * 4 + 5,
         opacity: Math.random() * 0.25 + 0.1,
         tilt: (Math.random() - 0.5) * 0.3,
         angle: Math.random() * Math.PI * 2,

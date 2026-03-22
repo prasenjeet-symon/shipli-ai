@@ -6,15 +6,20 @@
   <title>Shipli — AI-Powered Store Audit for Flutter</title>
   <meta name="description" content="Catch App Store and Play Store rejections before you submit. Shipli audits your Flutter app against store guidelines using AI.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
+<canvas id="stars-canvas"></canvas>
+
 <!-- Nav -->
 <nav>
   <div class="container">
-    <a href="/" class="nav-logo"><span>&#x1f6e1;</span> Shipli</a>
+    <a href="/" class="nav-logo">
+      <img src="assets/shipliai.png" alt="Shipli AI">
+      Shipli
+    </a>
     <div class="nav-links">
       <a href="#features">Features</a>
       <a href="#how-it-works">How it Works</a>
@@ -30,8 +35,9 @@
 <!-- Hero -->
 <section class="hero">
   <div class="container">
+    <img src="assets/shipliai.png" alt="Shipli AI" class="hero-logo">
     <div class="hero-badge">
-      <span>v1.0.0</span> &mdash; Now with Apple App Store + Google Play support
+      <span>v1.1.0</span> &mdash; Now with MCP Server + Dual Store Support
     </div>
     <h1>
       Stop guessing.<br>
@@ -70,6 +76,8 @@
     </div>
   </div>
 </section>
+
+<div class="neon-divider"></div>
 
 <!-- Features -->
 <section id="features">
@@ -113,6 +121,8 @@
   </div>
 </section>
 
+<div class="neon-divider"></div>
+
 <!-- How it works -->
 <section id="how-it-works" style="background: var(--bg-subtle);">
   <div class="container">
@@ -139,6 +149,8 @@
     </div>
   </div>
 </section>
+
+<div class="neon-divider"></div>
 
 <!-- Stores -->
 <section id="stores">
@@ -183,6 +195,8 @@
     </div>
   </div>
 </section>
+
+<div class="neon-divider"></div>
 
 <!-- MCP Server -->
 <section id="mcp" style="background: var(--bg-subtle);">
@@ -233,6 +247,8 @@
   </div>
 </section>
 
+<div class="neon-divider"></div>
+
 <!-- Quick start -->
 <section>
   <div class="container">
@@ -242,14 +258,14 @@
     <div style="max-width: 600px; margin: 0 auto;">
       <div class="code-block">
         <span class="dim"># Install globally</span><br>
-        <span class="cyan">$</span> npm install -g @prasenjeet/shipli<br><br>
+        <span style="color: var(--neon-cyan);">$</span> npm install -g @prasenjeet/shipli<br><br>
         <span class="dim"># One-time setup</span><br>
-        <span class="cyan">$</span> shipli init<br><br>
+        <span style="color: var(--neon-cyan);">$</span> shipli init<br><br>
         <span class="dim"># Run the audit</span><br>
-        <span class="cyan">$</span> shipli --dir ./my-flutter-app
+        <span style="color: var(--neon-cyan);">$</span> shipli --dir ./my-flutter-app
       </div>
       <p style="text-align: center; margin-top: 24px;">
-        <a href="docs.html" style="font-weight: 600;">Read the full documentation &rarr;</a>
+        <a href="docs.html" style="font-weight: 600; font-family: var(--pixel); font-size: 0.6rem;">Read the full documentation &rarr;</a>
       </p>
     </div>
   </div>
@@ -258,6 +274,7 @@
 <!-- Footer -->
 <footer>
   <div class="container">
+    <img src="assets/shipliai.png" alt="Shipli AI" style="width: 80px; margin-bottom: 16px; filter: drop-shadow(0 0 10px rgba(255, 45, 149, 0.4));">
     <div class="links">
       <a href="https://www.npmjs.com/package/@prasenjeet/shipli">npm</a>
       <a href="https://github.com/prasenjeet-symon/shipli-ai">GitHub</a>

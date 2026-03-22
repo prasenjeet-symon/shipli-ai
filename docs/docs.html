@@ -214,9 +214,42 @@
       <p>Shipli includes a built-in <a href="https://modelcontextprotocol.io" style="color: var(--neon-cyan);">Model Context Protocol</a> (MCP) server. AI coding assistants like Claude Code, Cursor, and Windsurf can run audits directly inside your editor.</p>
 
       <h3>Setup</h3>
-      <p>Install Shipli globally (the <code>shipli-mcp</code> binary is included), then add it to your MCP config.</p>
 
-      <h4>Claude Code</h4>
+      <h4>Step 1 &mdash; Install Shipli globally</h4>
+      <p>The <code>shipli-mcp</code> binary is included with the package.</p>
+      <div class="code-block">
+$ npm install -g @prasenjeet/shipli
+      </div>
+      <p>Verify both binaries are available:</p>
+      <div class="code-block">
+$ shipli --version<br>
+$ which shipli-mcp
+      </div>
+
+      <h4>Step 2 &mdash; Add the MCP server</h4>
+
+      <p><strong>Option A: Claude Code CLI (recommended)</strong></p>
+      <p>Run a single command to register the MCP server:</p>
+      <div class="code-block">
+<span style="color:var(--text-dim)"># Using Claude as the AI provider</span><br>
+$ claude mcp add shipli \<br>
+&nbsp;&nbsp;--transport stdio \<br>
+&nbsp;&nbsp;--env SHIPLI_PROVIDER=claude \<br>
+&nbsp;&nbsp;--env SHIPLI_MODEL=claude-haiku-4-5 \<br>
+&nbsp;&nbsp;--env ANTHROPIC_API_KEY=your-api-key \<br>
+&nbsp;&nbsp;-- shipli-mcp
+      </div>
+      <div class="code-block">
+<span style="color:var(--text-dim)"># Using Gemini as the AI provider</span><br>
+$ claude mcp add shipli \<br>
+&nbsp;&nbsp;--transport stdio \<br>
+&nbsp;&nbsp;--env SHIPLI_PROVIDER=gemini \<br>
+&nbsp;&nbsp;--env SHIPLI_MODEL=gemini-2.5-flash \<br>
+&nbsp;&nbsp;--env GEMINI_API_KEY=your-api-key \<br>
+&nbsp;&nbsp;-- shipli-mcp
+      </div>
+
+      <p><strong>Option B: Manual JSON config</strong></p>
       <p>Add to <code>~/.claude/.mcp.json</code>:</p>
       <div class="code-block">
 {<br>
@@ -234,17 +267,10 @@
       </div>
 
       <h4>Cursor / Windsurf</h4>
-      <p>Add the same config to your editor's MCP settings. The <code>command</code> and <code>env</code> fields are identical.</p>
+      <p>Add the same JSON config to your editor's MCP settings. The <code>command</code> and <code>env</code> fields are identical.</p>
 
-      <h4>Using Gemini</h4>
-      <p>Set <code>SHIPLI_PROVIDER</code> to <code>"gemini"</code> and provide <code>GEMINI_API_KEY</code> instead of <code>ANTHROPIC_API_KEY</code>:</p>
-      <div class="code-block">
-"env": {<br>
-&nbsp;&nbsp;"SHIPLI_PROVIDER": "gemini",<br>
-&nbsp;&nbsp;"SHIPLI_MODEL": "gemini-2.5-flash",<br>
-&nbsp;&nbsp;"GEMINI_API_KEY": "your-api-key"<br>
-}
-      </div>
+      <h4>Step 3 &mdash; Restart and verify</h4>
+      <p>Restart Claude Code (or run <code>/mcp</code> in chat) to pick up the new server. You should see <code>shipli</code> listed with its two tools.</p>
 
       <h3>Environment Variables</h3>
       <table>

@@ -275,15 +275,184 @@ ${PKG_CODE_CATEGORIES}
 ${RESPONSE_FORMAT}`;
 }
 
+// ── React Native Prompt Builders ──────────────────────────────────────────────
+
+const RN_STORE_CATEGORIES = `
+REACT NATIVE APP STORE AUDIT CATEGORIES (evaluate each):
+1. PRIVACY & PERMISSIONS — Are all native API usages (camera, location, contacts) declared in Info.plist with descriptive usage strings? Are there undeclared permissions implied by dependencies?
+2. DATA COLLECTION & TRACKING — Does the app collect user data? Is App Tracking Transparency implemented for iOS? Are analytics/crash SDKs (Firebase, Amplitude) properly declared?
+3. CONTENT & DESIGN — Does the app meet minimum functionality requirements? Any signs of webview-only implementation? Responsive across device sizes?
+4. IN-APP PURCHASES — If payment code exists, is it using StoreKit (iOS) or Play Billing (Android)? Signs of Stripe/PayPal for digital goods?
+5. LEGAL & COMPLIANCE — Privacy policy URL in app stores? Export compliance (ATS configuration)? COPPA for children's apps?
+6. FORBIDDEN PATTERNS — Dynamic code loading, eval() usage, remote code execution? React Native Bridge security risks?`;
+
+const RN_CODE_CATEGORIES = `
+REACT NATIVE CODE AUDIT CATEGORIES (evaluate each):
+1. SECURITY — Hardcoded API keys/secrets in JS bundle (easily extracted!)? Insecure fetch with no certificate pinning? SQL injection in SQLite queries?
+2. ARCHITECTURE — State management (Redux, MobX, Zustand, Context)? Proper separation of concerns? FlatList virtualization for long lists?
+3. ERROR HANDLING — ErrorBoundary usage? try/catch around async operations? Proper error states in UI?
+4. PERFORMANCE — Memory leaks from untrimmed useEffect? Large images without caching (use FastImage)? Unnecessary re-renders? Hermes engine usage?
+5. BEST PRACTICES — Proper keyboard handling? Safe area insets? Dark mode support? Accessibility (accessibilityLabel, accessibilityHint)?
+6. DEPENDENCIES — Outdated npm packages? Known vulnerabilities in dependencies? Overly broad permissions in native modules?
+7. EXPO-SPECIFIC — Using expo-dev-client for production? Bare workflow differences? EAS Build requirements met?`;
+
+function buildReactNativeStorePrompt(platform) {
+  const isIos = platform === 'ios';
+  const isAndroid = platform === 'android';
+  const isBoth = platform === 'both';
+
+  const guidelinesRef = [];
+  if (isIos || isBoth) {
+    guidelinesRef.push('You have been provided React Native-specific App Store guidance in the "REACT_NATIVE_GUIDELINES" section. Cite specific Apple guideline section numbers.');
+  }
+  if (isAndroid || isBoth) {
+    guidelinesRef.push('You have been provided Google Play Developer Program Policies in the "GOOGLE_PLAY_GUIDELINES" section (if available). Cite specific Google Play policy names.');
+  }
+
+  const knowledge = [];
+  if (isIos || isBoth) {
+    knowledge.push(
+      "- Apple's App Store Review Guidelines (all sections)",
+      '- iOS privacy requirements (Info.plist usage descriptions, App Tracking Transparency)',
+      '- In-app purchase requirements (StoreKit vs third-party payment) for React Native',
+      '- Common iOS rejection reasons specific to React Native apps',
+    );
+  }
+  if (isAndroid || isBoth) {
+    knowledge.push(
+      "- Google Play Developer Program Policies (all sections)",
+      '- Android permissions model and Data Safety requirements',
+      '- Google Play Billing Library requirements for digital goods',
+    );
+  }
+  knowledge.push(
+    '- React Native App Store submission best practices',
+    '- Data safety and encryption export compliance',
+    '- Minimum functionality and content policy requirements',
+  );
+
+  const evidence = ['- "PACKAGE_METADATA": App name, version, Expo vs Bare, and list of npm dependencies'];
+  if (isIos || isBoth) evidence.push('- "INFO_PLIST_PERMISSIONS": NS*UsageDescription keys from Info.plist');
+  if (isAndroid || isBoth) evidence.push('- "ANDROID_MANIFEST_PERMISSIONS": uses-permission entries from AndroidManifest.xml');
+  evidence.push('- "JS_SKELETONS": Architectural skeleton of JS/TS files');
+  evidence.push('- "DETECTED_PERMISSIONS": Permissions inferred from package dependencies');
+
+  const categories = [];
+  if (isIos || isBoth) categories.push(RN_STORE_CATEGORIES);
+  if (isAndroid || isBoth) categories.push(ANDROID_STORE_CATEGORIES);
+
+  const platformLabel = isBoth ? 'Apple App Store and Google Play' : isIos ? 'Apple App Store' : 'Google Play Store';
+
+  return `You are an experienced ${platformLabel} reviewer conducting a pre-submission compliance audit of a React Native application.
+
+${guidelinesRef.join('\n')}
+
+You have deep knowledge of:
+${knowledge.join('\n')}
+
+Focus ONLY on store compliance — not code quality or architecture.
+
+EVIDENCE FORMAT:
+${evidence.join('\n')}
+${categories.join('\n')}
+${RESPONSE_FORMAT}`;
+}
+
+function buildReactNativeCodePrompt() {
+  return `You are a senior React Native software engineer conducting a code quality and security review. You have deep knowledge of:
+
+- React Native best practices (hooks, navigation, state management)
+- TypeScript/JavaScript patterns, async/await, error boundaries
+- Common security vulnerabilities in React Native (OWASP Mobile Top 10)
+- Performance optimization for React Native (Hermes, FlatList, image caching)
+- Expo vs Bare workflow differences and when each is appropriate
+- npm dependency management and security auditing
+
+Focus ONLY on code quality, security, and engineering best practices — not store compliance.
+
+EVIDENCE FORMAT:
+- "PACKAGE_METADATA": App name, version, Expo vs Bare, and list of npm dependencies
+- "DETECTED_PERMISSIONS": Permissions inferred from package dependencies
+- "JS_SKELETONS": Architectural skeleton of JS/TS files
+${RN_CODE_CATEGORIES}
+${RESPONSE_FORMAT}`;
+}
+
+function buildReactNativeBothPrompt(platform) {
+  const isIos = platform === 'ios';
+  const isAndroid = platform === 'android';
+  const isBoth = platform === 'both';
+
+  const guidelinesRef = [];
+  if (isIos || isBoth) {
+    guidelinesRef.push('You have been provided React Native-specific App Store guidance in the "REACT_NATIVE_GUIDELINES" section. Cite specific Apple guideline numbers.');
+  }
+  if (isAndroid || isBoth) {
+    guidelinesRef.push('You have been provided Google Play Developer Program Policies in the "GOOGLE_PLAY_GUIDELINES" section (if available). Cite specific Google Play policy names.');
+  }
+
+  const knowledge = [];
+  if (isIos || isBoth) {
+    knowledge.push(
+      "- Apple's App Store Review Guidelines (all sections)",
+      '- iOS privacy requirements (Info.plist usage descriptions, App Tracking Transparency)',
+    );
+  }
+  if (isAndroid || isBoth) {
+    knowledge.push(
+      "- Google Play Developer Program Policies (all sections)",
+      '- Android permissions model and Data Safety requirements',
+    );
+  }
+  knowledge.push(
+    '- React Native best practices (hooks, navigation, state management)',
+    '- Common security vulnerabilities in React Native (OWASP Mobile Top 10)',
+    '- Performance optimization for React Native',
+    '- Expo vs Bare workflow differences',
+  );
+
+  const evidence = ['- "PACKAGE_METADATA": App name, version, Expo vs Bare, and list of npm dependencies'];
+  if (isIos || isBoth) evidence.push('- "INFO_PLIST_PERMISSIONS": NS*UsageDescription keys from Info.plist');
+  if (isAndroid || isBoth) evidence.push('- "ANDROID_MANIFEST_PERMISSIONS": uses-permission entries from AndroidManifest.xml');
+  evidence.push('- "JS_SKELETONS": Architectural skeleton of JS/TS files');
+  evidence.push('- "DETECTED_PERMISSIONS": Permissions inferred from package dependencies');
+
+  const categories = [];
+  if (isIos || isBoth) categories.push(RN_STORE_CATEGORIES);
+  if (isAndroid || isBoth) categories.push(ANDROID_STORE_CATEGORIES);
+  categories.push(RN_CODE_CATEGORIES);
+
+  const platformLabel = isBoth ? 'Apple App Store and Google Play' : isIos ? 'Apple App Store' : 'Google Play Store';
+
+  return `You are an experienced ${platformLabel} reviewer AND senior React Native engineer conducting a comprehensive audit.
+
+${guidelinesRef.join('\n')}
+
+You have deep knowledge of:
+${knowledge.join('\n')}
+
+Analyze the provided React Native project evidence and produce a comprehensive audit report covering both store compliance and code quality.
+
+EVIDENCE FORMAT:
+${evidence.join('\n')}
+${categories.join('\n')}
+${RESPONSE_FORMAT}`;
+}
+
 // ── Prompt selection ──
 
 function selectPrompt(projectType, mode, platform) {
+  if (projectType === 'react-native') {
+    if (mode === 'store') return buildReactNativeStorePrompt(platform);
+    if (mode === 'code') return buildReactNativeCodePrompt();
+    return buildReactNativeBothPrompt(platform);
+  }
   if (projectType === 'package') {
     if (mode === 'store') return buildPkgStorePrompt();
     if (mode === 'code') return buildPkgCodePrompt();
     return buildPkgBothPrompt();
   }
-  // App
+  // App (Flutter)
   if (mode === 'store') return buildStorePrompt(platform);
   if (mode === 'code') return buildCodePrompt();
   return buildBothPrompt(platform);
@@ -291,14 +460,19 @@ function selectPrompt(projectType, mode, platform) {
 
 // ── Message builder ──
 
-function buildUserMessage({ files, exampleFiles, permissions, androidPermissions, pubspec, plistFound, androidManifestFound, projectType, appleGuidelines, googleGuidelines }) {
+function buildUserMessage({ files, exampleFiles, permissions, androidPermissions, pubspec, packageInfo, plistFound, androidManifestFound, projectType, appleGuidelines, googleGuidelines }) {
   const sections = [];
   const isPackage = projectType === 'package';
+  const isReactNative = projectType === 'react-native';
 
   // Inject live guidelines as grounding context
   if (appleGuidelines?.content) {
     sections.push('=== APPLE_APP_STORE_GUIDELINES ===');
-    sections.push('(Apple App Store Review Guidelines)');
+    if (isReactNative) {
+      sections.push('(React Native App Store Review Guidelines)');
+    } else {
+      sections.push('(Apple App Store Review Guidelines)');
+    }
     sections.push(appleGuidelines.content);
   }
 
@@ -308,18 +482,41 @@ function buildUserMessage({ files, exampleFiles, permissions, androidPermissions
     sections.push(googleGuidelines.content);
   }
 
-  sections.push('\n=== PUBSPEC_METADATA ===');
-  sections.push(`${isPackage ? 'Package' : 'App'}: ${pubspec.name}${pubspec.version ? ` v${pubspec.version}` : ''}`);
-  if (pubspec.description) {
-    sections.push(`Description: ${pubspec.description}`);
-  }
-  sections.push(`Dependencies: ${pubspec.dependencies.join(', ') || '(none)'}`);
-  sections.push(`Dev Dependencies: ${pubspec.devDependencies.join(', ') || '(none)'}`);
+  if (isReactNative && packageInfo) {
+    // React Native: use package.json metadata
+    sections.push('\n=== PACKAGE_METADATA ===');
+    sections.push(`Type: ${packageInfo.isExpo ? 'Expo' : 'Bare React Native'}`);
+    sections.push(`App: ${packageInfo.name}${packageInfo.version ? ` v${packageInfo.version}` : ''}`);
+    if (packageInfo.description) {
+      sections.push(`Description: ${packageInfo.description}`);
+    }
+    sections.push(`Dependencies: ${packageInfo.dependencies.join(', ') || '(none)'}`);
+    sections.push(`Dev Dependencies: ${packageInfo.devDependencies.join(', ') || '(none)'}`);
+    if (packageInfo.nativeModules && packageInfo.nativeModules.length > 0) {
+      sections.push(`Native Modules: ${packageInfo.nativeModules.join(', ')}`);
+    }
+    if (packageInfo.detectedPermissions && packageInfo.detectedPermissions.length > 0) {
+      sections.push('\n=== DETECTED_PERMISSIONS ===');
+      sections.push('Permissions inferred from package dependencies:');
+      for (const perm of packageInfo.detectedPermissions) {
+        sections.push(`  - ${perm} (implied by installed packages)`);
+      }
+    }
+  } else if (pubspec) {
+    // Flutter: use pubspec.yaml metadata
+    sections.push('\n=== PUBSPEC_METADATA ===');
+    sections.push(`${isPackage ? 'Package' : 'App'}: ${pubspec.name}${pubspec.version ? ` v${pubspec.version}` : ''}`);
+    if (pubspec.description) {
+      sections.push(`Description: ${pubspec.description}`);
+    }
+    sections.push(`Dependencies: ${pubspec.dependencies.join(', ') || '(none)'}`);
+    sections.push(`Dev Dependencies: ${pubspec.devDependencies.join(', ') || '(none)'}`);
 
-  if (isPackage && pubspec.pluginPlatforms) {
-    sections.push('\n=== PLUGIN_PLATFORMS ===');
-    for (const [platform, config] of Object.entries(pubspec.pluginPlatforms)) {
-      sections.push(`${platform}: ${JSON.stringify(config)}`);
+    if (isPackage && pubspec.pluginPlatforms) {
+      sections.push('\n=== PLUGIN_PLATFORMS ===');
+      for (const [platform, config] of Object.entries(pubspec.pluginPlatforms)) {
+        sections.push(`${platform}: ${JSON.stringify(config)}`);
+      }
     }
   }
 
@@ -351,21 +548,30 @@ function buildUserMessage({ files, exampleFiles, permissions, androidPermissions
     }
   }
 
-  sections.push('\n=== DART_SKELETONS ===');
-  for (const file of files) {
-    sections.push(`\n--- ${file.relativePath} ---`);
-    sections.push(file.skeleton);
-  }
-
-  if (exampleFiles && exampleFiles.length > 0) {
-    sections.push('\n=== EXAMPLE_APP ===');
-    for (const file of exampleFiles) {
-      sections.push(`\n--- example/${file.relativePath} ---`);
+  if (isReactNative) {
+    sections.push('\n=== JS_SKELETONS ===');
+    sections.push(`(${files.length} source files scanned)`);
+    for (const file of files) {
+      sections.push(`\n--- ${file.relativePath} ---`);
       sections.push(file.skeleton);
     }
-  } else if (isPackage) {
-    sections.push('\n=== EXAMPLE_APP ===');
-    sections.push('No example/ app found in this package.');
+  } else {
+    sections.push('\n=== DART_SKELETONS ===');
+    for (const file of files) {
+      sections.push(`\n--- ${file.relativePath} ---`);
+      sections.push(file.skeleton);
+    }
+
+    if (exampleFiles && exampleFiles.length > 0) {
+      sections.push('\n=== EXAMPLE_APP ===');
+      for (const file of exampleFiles) {
+        sections.push(`\n--- example/${file.relativePath} ---`);
+        sections.push(file.skeleton);
+      }
+    } else if (isPackage) {
+      sections.push('\n=== EXAMPLE_APP ===');
+      sections.push('No example/ app found in this package.');
+    }
   }
 
   return sections.join('\n');

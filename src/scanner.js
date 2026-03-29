@@ -5,7 +5,9 @@ import fg from 'fast-glob';
 const MAX_LINES_PER_FILE = 300;
 const MAX_TOTAL_LINES = 8000;
 
-const STRUCTURAL_KEYWORDS = [
+// ── Dart Scanner (Flutter) ──────────────────────────────────────────────────────
+
+const DART_STRUCTURAL_KEYWORDS = [
   'class ', 'extends ', 'implements ', 'mixin ', 'enum ', 'abstract ',
   'typedef ', 'sealed ', 'factory ', 'const ', 'final ', 'static ',
   'required ', 'late ', 'part ', 'part of ',
@@ -13,7 +15,7 @@ const STRUCTURAL_KEYWORDS = [
   'library ',
 ];
 
-const ANNOTATION_PATTERNS = [
+const DART_ANNOTATION_PATTERNS = [
   '@override', '@required', '@immutable', '@pragma', '@visibleForTesting',
   '@freezed', '@JsonSerializable', '@riverpod', '@injectable',
   '@protected', '@mustCallSuper', '@Deprecated', '@experimental',
@@ -22,72 +24,49 @@ const ANNOTATION_PATTERNS = [
   '@GenerateMocks', '@singleton', '@lazySingleton', '@module',
 ];
 
-const SIGNAL_PATTERNS = [
-  // Widget build & state
+const DART_SIGNAL_PATTERNS = [
   'Widget build', 'State<', 'StatefulWidget', 'StatelessWidget',
   'ChangeNotifier', 'notifyListeners', 'setState',
-  // Navigation & routing
   'Navigator', 'GoRouter', 'AutoRouter',
   'MaterialPageRoute', 'CupertinoPageRoute', 'PageRouteBuilder',
   'GoRoute', 'RouteBase', 'onGenerateRoute', 'onUnknownRoute',
   'pushNamed', 'pushReplacementNamed',
-  // State management
   'Provider', 'Bloc', 'Cubit', 'GetX', 'Riverpod', 'ConsumerWidget',
-  // Networking
   'http.', 'dio.', 'Dio(', 'ApiClient',
   'baseUrl', 'BASE_URL', 'apiUrl', 'API_URL',
   'Authorization', 'Bearer ',
-  // Storage
   'SharedPreferences', 'Hive', 'sqflite', 'drift',
   'SecureStorage', 'FlutterSecureStorage',
-  // Firebase
   'FirebaseAuth', 'FirebaseMessaging', 'FirebaseAnalytics', 'Crashlytics',
-  // Permissions & hardware
   'permission', 'Permission', 'camera', 'Camera',
   'location', 'Location', 'Geolocator',
   'image_picker', 'ImagePicker', 'PhotoView',
   'Clipboard',
-  // URLs & deep links
   'url_launcher', 'launchUrl', 'canLaunchUrl',
-  // WebView
   'webview', 'WebView', 'InAppWebView',
-  // Purchases
   'in_app_purchase', 'StoreKit', 'InAppPurchase',
-  // Platform
   'Platform.is', 'kIsWeb',
   'MethodChannel', 'EventChannel', 'BasicMessageChannel',
   'PlatformException',
-  // Notifications
   'NotificationService', 'LocalNotification', 'FlutterLocalNotifications',
-  // Auth & biometrics
   'BiometricAuth', 'LocalAuthentication',
-  // UI structure
   'Scaffold', 'AppBar', 'BottomNavigationBar', 'TabBar', 'Drawer',
   'MaterialApp', 'CupertinoApp',
   'showDialog', 'showModalBottomSheet', 'AlertDialog',
   'TextEditingController', 'FormField', 'Form(',
   'ListView', 'GridView', 'CustomScrollView',
-  // Lifecycle
   'initState', 'dispose', 'didChangeDependencies', 'didUpdateWidget',
   'WidgetsBindingObserver', 'didChangeAppLifecycleState',
-  // Error handling
   'try {', 'catch (', 'on Exception', 'on Error',
   'FlutterError', 'ErrorWidget', 'runZonedGuarded',
-  // Crypto & security
   'encrypt', 'decrypt',
-  // Tracking & analytics
   'Analytics', 'Tracker', 'Sentry',
   'AppTrackingTransparency',
-  // Background & isolates
   'Isolate', 'compute(',
   'BackgroundFetch', 'WorkManager',
-  // Code push (forbidden by Apple)
   'CodePush', 'shorebird',
-  // FFI
   'DynamicLibrary',
-  // Health
   'HealthKit', 'health',
-  // Android-specific
   'google_mobile_ads', 'GoogleMobileAds',
   'play_billing', 'BillingClient',
   'targetSdkVersion', 'minSdkVersion',
@@ -95,57 +74,132 @@ const SIGNAL_PATTERNS = [
   'FlutterActivity', 'FlutterFragmentActivity',
   'google_sign_in', 'GoogleSignIn',
   'firebase_core', 'FirebaseCore',
-  // Misc
   'openUrl', 'open(',
 ];
 
+// ── JS/TS/TSX Scanner (React Native) ─────────────────────────────────────────
+
+const JS_STRUCTURAL_KEYWORDS = [
+  'class ', 'extends ', 'implements ', 'function ', 'const ', 'let ', 'var ',
+  'async ', 'await ', 'return ', 'export ', 'import ', 'from ',
+  'interface ', 'type ', 'enum ', 'namespace ', 'declare ',
+  'get ', 'set ', 'static ', 'readonly ', 'private ', 'public ', 'protected ',
+];
+
+const JS_SIGNAL_PATTERNS = [
+  // React core
+  'React.', 'useState', 'useEffect', 'useCallback', 'useMemo', 'useRef',
+  'useContext', 'createContext', 'useReducer', 'useLayoutEffect',
+  'Component', 'PureComponent', 'React.Component',
+  'render(', 'return (', 'React.createElement',
+  // React Native core
+  'View', 'Text', 'TextInput', 'ScrollView', 'FlatList', 'SectionList',
+  'TouchableOpacity', 'TouchableHighlight', 'TouchableWithoutFeedback',
+  'Image', 'SafeAreaView', 'StyleSheet', 'Platform.OS',
+  'NativeModules', 'NativeEventEmitter', 'NativeApp',
+  'Alert.alert', 'Alert.prompt',
+  'Linking.openURL', 'Linking.sendIntent',
+  // Navigation
+  'createStackNavigator', 'createBottomTabNavigator', 'createDrawerNavigator',
+  '@react-navigation', 'react-navigation',
+  'useNavigation', 'useRoute', 'navigation.navigate',
+  // State management
+  'useSelector', 'useDispatch', 'useStore',
+  'createSlice', 'createAsyncThunk',
+  'mobx', 'observer', 'makeAutoObservable',
+  // Networking
+  'fetch(', 'axios.', 'XMLHttpRequest',
+  'baseURL', 'Authorization', 'Bearer ',
+  // Storage
+  'AsyncStorage', 'SecureStore', '@react-native-async-storage',
+  'localStorage', 'sessionStorage',
+  // Permissions & sensors
+  'PermissionsAndroid', 'Platform.PermissionsAndroid',
+  'CameraRoll', '@react-native-camera-roll',
+  'ImagePicker', 'launchCamera', 'launchImageLibrary',
+  'Geolocation', '@react-native-community/geolocation',
+  'PushNotification', 'notifee',
+  // Biometrics / security
+  'LocalAuthentication', 'TouchID', 'FaceID', 'BiometryType',
+  'Keychain', '@react-native-keychain',
+  // Firebase / analytics
+  'firebase.', '@firebase',
+  'analytics.', 'trackEvent',
+  'amplitude', 'mixpanel',
+  // Payments
+  'Stripe', '@stripe/stripe-react-native', 'PaymentsDK',
+  'InAppPurchases', 'requestPurchase', 'getProducts',
+  // Deep linking
+  'DeepLink', 'Linking.', 'getInitialURL',
+  'schema://', 'app://', '://',
+  // WebView
+  'WebView', 'injectJavaScript', 'onMessage',
+  // Background / workers
+  'BackgroundTask', 'WorkManager', 'setInterval', 'setTimeout',
+  // Crypto / security
+  'crypto.', 'getRandomValues', 'SubtleCrypto',
+  // Hermes / performance
+  'HermesInternal', 'enableHermes',
+  'JSI', 'makeNativeCallable',
+  // Error / crash
+  'ErrorBoundary', 'componentDidCatch',
+  'Sentry', 'captureException', 'Crashlytics',
+  // Clipboard
+  'Clipboard', '@react-native-clipboard/clipboard',
+  // SMS / Contacts
+  'Contacts', 'sendSMS', 'checkContactsPermission',
+];
+
 // Patterns that should match against the RAW line (including string contents)
-// because URLs inside strings are the actual security signal
-const RAW_LINE_PATTERNS = ['http://', 'https://'];
+const RAW_LINE_PATTERNS = ['http://', 'https://', 'ws://', 'wss://'];
 
 function stripStringLiterals(line) {
   return line
     .replace(/"(?:[^"\\]|\\.)*"/g, '""')
-    .replace(/'(?:[^'\\]|\\.)*'/g, "''");
+    .replace(/'(?:[^'\\]|\\.)*'/g, "''")
+    .replace(/`(?:[^`\\]|\\.)*`/g, "``");
 }
 
-const SIG_PATTERN = /^\s*(?:[\w<>?,\[\]\s]+)\s+\w+\s*\(/;
-
-function isSignificantLine(line) {
+function isSignificantDartLine(line) {
   const stripped = stripStringLiterals(line);
-
-  for (const kw of STRUCTURAL_KEYWORDS) {
+  for (const kw of DART_STRUCTURAL_KEYWORDS) {
     if (stripped.includes(kw)) return true;
   }
-  for (const ann of ANNOTATION_PATTERNS) {
+  for (const ann of DART_ANNOTATION_PATTERNS) {
     if (stripped.includes(ann)) return true;
   }
-  for (const sig of SIGNAL_PATTERNS) {
+  for (const sig of DART_SIGNAL_PATTERNS) {
     if (stripped.includes(sig)) return true;
   }
-  // URL patterns checked against raw line — URLs in strings ARE the signal
-  for (const pat of RAW_LINE_PATTERNS) {
-    if (line.includes(pat)) return true;
-  }
-
-  // Method/function signatures
-  if (SIG_PATTERN.test(stripped)) {
-    // Single-line complete signature (handles async, async*, sync* variants)
-    if (/[\{=]/.test(stripped.slice(-5)) || stripped.endsWith(';')) return true;
-    // Multi-line signature start (line ends with open paren or has trailing comma)
-    if (stripped.endsWith('(') || stripped.endsWith(',')) return true;
-  }
-
-  // Closing braces at class level
-  if (/^}\s*$/.test(line)) return true;
-
   return false;
 }
 
-function extractSkeleton(lines) {
+function isSignificantJSLine(line) {
+  const stripped = stripStringLiterals(line);
+  for (const kw of JS_STRUCTURAL_KEYWORDS) {
+    if (stripped.includes(kw)) return true;
+  }
+  for (const sig of JS_SIGNAL_PATTERNS) {
+    if (stripped.includes(sig)) return true;
+  }
+  // URL patterns checked against raw line
+  for (const pat of RAW_LINE_PATTERNS) {
+    if (line.includes(pat)) return true;
+  }
+  return false;
+}
+
+const SIG_PATTERN_DART = /^\s*(?:[\w<>?,\[\]\s]+)\s+\w+\s*\(/;
+const SIG_PATTERN_JS = /^\s*(?:export\s+)?(?:async\s+)?(?:default\s+)?(?:const|function|class)\s+\w+/;
+
+function extractSkeleton(lines, isReactNative) {
   const result = [];
   let inBlockComment = false;
   let inMultiLineSig = false;
+  let parenDepth = 0;
+  let braceDepth = 0;
+
+  const isSignificantLine = isReactNative ? isSignificantJSLine : isSignificantDartLine;
 
   for (const raw of lines) {
     const line = raw.trim();
@@ -160,14 +214,19 @@ function extractSkeleton(lines) {
     }
     if (!line) continue;
     if (line.startsWith('//')) continue;
-    if (line.startsWith('import ')) continue;
-    if (line.startsWith('export ')) continue;
+    if (line.startsWith('import ') && !line.includes("'")) continue;
+    if (line.startsWith('export ') && !line.includes("'")) continue;
 
     // If accumulating a multi-line signature, keep lines until it closes
     if (inMultiLineSig) {
       result.push(raw.replace(/\s+$/, ''));
-      if (line.includes(') {') || line.includes(') async {') || line.includes(') async* {')
-          || line.includes(') sync* {') || line.endsWith(');') || line.includes(') =>')) {
+      for (const ch of line) {
+        if (ch === '(') parenDepth++;
+        else if (ch === ')') parenDepth--;
+        else if (ch === '{') braceDepth++;
+        else if (ch === '}') braceDepth--;
+      }
+      if (parenDepth === 0 && braceDepth === 0) {
         inMultiLineSig = false;
       }
       continue;
@@ -175,9 +234,16 @@ function extractSkeleton(lines) {
 
     if (isSignificantLine(line)) {
       result.push(raw.replace(/\s+$/, ''));
-      // Detect start of multi-line signature (ends with open paren)
-      if (SIG_PATTERN.test(stripStringLiterals(line)) && line.trimEnd().endsWith('(')) {
-        inMultiLineSig = true;
+      const stripped = stripStringLiterals(line);
+      // Detect multi-line function/component definition
+      const sigPattern = isReactNative ? SIG_PATTERN_JS : SIG_PATTERN_DART;
+      if (sigPattern.test(stripped) || stripped.endsWith('=>')) {
+        // Count parens and braces
+        parenDepth = (stripped.match(/\(/g) || []).length - (stripped.match(/\)/g) || []).length;
+        braceDepth = (stripped.match(/\{/g) || []).length - (stripped.match(/\}/g) || []).length;
+        if (parenDepth > 0 || braceDepth > 0 || stripped.endsWith('=>') || stripped.endsWith('= (')) {
+          inMultiLineSig = true;
+        }
       }
     }
   }
@@ -185,27 +251,17 @@ function extractSkeleton(lines) {
   return result;
 }
 
-export async function scan(projectDir) {
-  const entries = await fg.glob('lib/**/*.dart', {
-    cwd: projectDir,
-    absolute: true,
-    ignore: ['**/generated/**', '**/*.g.dart', '**/*.freezed.dart'],
-  });
-
-  if (entries.length === 0) {
-    throw new Error('No .dart files found in lib/ directory');
-  }
-
+function processFiles(entries, projectDir) {
   const files = [];
   let totalLines = 0;
   let skeletonLines = 0;
 
   for (const filePath of entries.sort()) {
-    const content = await readFile(filePath, 'utf-8');
+    const content = readFile(filePath, 'utf-8');
     const lines = content.split('\n');
     totalLines += lines.length;
 
-    let skeleton = extractSkeleton(lines);
+    let skeleton = extractSkeleton(lines, false);
 
     if (skeleton.length > MAX_LINES_PER_FILE) {
       const truncated = skeleton.length - MAX_LINES_PER_FILE;
@@ -218,7 +274,86 @@ export async function scan(projectDir) {
     files.push({ relativePath, skeleton: skeleton.join('\n') });
   }
 
-  // Proportional truncation if total exceeds limit
+  if (skeletonLines > MAX_TOTAL_LINES) {
+    const ratio = MAX_TOTAL_LINES / skeletonLines;
+    for (const file of files) {
+      const lines = file.skeleton.split('\n');
+      const allowed = Math.max(10, Math.floor(lines.length * ratio));
+      if (lines.length > allowed) {
+        const truncated = lines.length - allowed;
+        file.skeleton = lines.slice(0, allowed).join('\n') + `\n// ... truncated (${truncated} more lines)`;
+      }
+    }
+  }
+
+  return { files, stats: { totalFiles: entries.length, totalLines, skeletonLines } };
+}
+
+// ── Public API ─────────────────────────────────────────────────────────────────
+
+/**
+ * Scan Dart/Flutter files.
+ */
+export async function scan(projectDir) {
+  const entries = await fg.glob('lib/**/*.dart', {
+    cwd: projectDir,
+    absolute: true,
+    ignore: ['**/generated/**', '**/*.g.dart', '**/*.freezed.dart'],
+  });
+
+  if (entries.length === 0) {
+    throw new Error('No .dart files found in lib/ directory');
+  }
+
+  return processFiles(entries, projectDir);
+}
+
+/**
+ * Scan JS/TS/TSX/JSX files for React Native projects.
+ */
+export async function scanReactNative(projectDir) {
+  const patterns = [
+    '**/*.{js,jsx,ts,tsx}',
+    '!**/node_modules/**',
+    '!**/android/**',
+    '!**/ios/**',
+    '!**/dist/**',
+    '!**/build/**',
+    '!**/.expo/**',
+    '!**/vendor/**',
+  ];
+
+  const entries = await fg.glob(patterns, {
+    cwd: projectDir,
+    absolute: true,
+  });
+
+  if (entries.length === 0) {
+    throw new Error('No .js/.ts files found — is this a React Native project?');
+  }
+
+  const files = [];
+  let totalLines = 0;
+  let skeletonLines = 0;
+
+  for (const filePath of entries.sort()) {
+    const content = await readFile(filePath, 'utf-8');
+    const lines = content.split('\n');
+    totalLines += lines.length;
+
+    let skeleton = extractSkeleton(lines, true);
+
+    if (skeleton.length > MAX_LINES_PER_FILE) {
+      const truncated = skeleton.length - MAX_LINES_PER_FILE;
+      skeleton = skeleton.slice(0, MAX_LINES_PER_FILE);
+      skeleton.push(`// ... truncated (${truncated} more lines)`);
+    }
+
+    skeletonLines += skeleton.length;
+    const relativePath = path.relative(projectDir, filePath);
+    files.push({ relativePath, skeleton: skeleton.join('\n') });
+  }
+
   if (skeletonLines > MAX_TOTAL_LINES) {
     const ratio = MAX_TOTAL_LINES / skeletonLines;
     for (const file of files) {

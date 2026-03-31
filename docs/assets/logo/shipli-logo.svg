@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Gradient for modern look -->
+    <linearGradient id="shipGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0EA5E9;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0284C7;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="sailGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#38BDF8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0EA5E9;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle for badge/favicon use -->
+  <circle cx="256" cy="256" r="240" fill="url(#shipGradient)" opacity="0.1"/>
+  
+  <!-- Ship hull - streamlined, modern shape -->
+  <path d="M120 340 
+           Q80 340 90 310 
+           L130 260 
+           L382 260 
+           L422 310 
+           Q432 340 392 340 
+           Z" 
+        fill="url(#shipGradient)" />
+  
+  <!-- Sail with code bracket cutout -->
+  <path d="M200 260 
+           L200 80 
+           L310 170 
+           L310 260 
+           Z" 
+        fill="url(#sailGradient)" />
+  
+  <!-- Code bracket cutout in sail -->
+  <path d="M235 150 L220 170 L235 190" 
+        stroke="#FFFFFF" 
+        stroke-width="8" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        fill="none" />
+  <path d="M275 150 L290 170 L275 190" 
+        stroke="#FFFFFF" 
+        stroke-width="8" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        fill="none" />
+  
+  <!-- Checkmark on hull - quality/shipli ready -->
+  <path d="M180 300 L220 330 L300 270" 
+        stroke="#FFFFFF" 
+        stroke-width="14" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"
+        fill="none" />
+  
+  <!-- Ship mast -->
+  <rect x="248" y="80" width="16" height="180" fill="#0369A1" rx="4"/>
+  
+  <!-- Flag at top - "ready to ship" -->
+  <path d="M256 60 L256 80 L300 70 Z" fill="#0EA5E9"/>
+  
+  <!-- Water waves - motion/launch -->
+  <path d="M80 360 Q120 350 160 360 Q200 370 240 360 Q280 350 320 360 Q360 370 400 360 Q440 350 480 360" 
+        stroke="#0EA5E9" 
+        stroke-width="4" 
+        fill="none" 
+        opacity="0.5"/>
+  <path d="M60 380 Q100 370 140 380 Q180 390 220 380 Q260 370 300 380 Q340 390 380 380 Q420 370 460 380" 
+        stroke="#38BDF8" 
+        stroke-width="3" 
+        fill="none" 
+        opacity="0.3"/>
+</svg>

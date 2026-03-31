@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Shipli Icon - Optimized for small sizes (favicon, npm badge) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#38BDF8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0284C7;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Rounded background -->
+  <rect x="4" y="4" width="56" height="56" rx="12" fill="url(#iconGrad)"/>
+  
+  <!-- Simplified ship shape -->
+  <path d="M12 44 Q10 44 12 40 L18 32 L46 32 L52 40 Q54 44 50 44 Z" fill="#FFFFFF"/>
+  
+  <!-- Sail with bracket hint -->
+  <path d="M24 32 L24 14 L36 23 L36 32 Z" fill="#FFFFFF" opacity="0.9"/>
+  
+  <!-- Code brackets in sail -->
+  <path d="M28 20 L26 23 L28 26" stroke="#0284C7" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <path d="M32 20 L34 23 L32 26" stroke="#0284C7" stroke-width="2" stroke-linecap="round" fill="none"/>
+  
+  <!-- Checkmark -->
+  <path d="M22 38 L28 42 L40 32" stroke="#0284C7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

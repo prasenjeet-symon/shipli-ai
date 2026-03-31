@@ -11,14 +11,44 @@ import chalk from 'chalk';
 import { loadConfig } from './config.js';
 import { runInit, runConfig } from './init.js';
 import { scan } from './scanner.js';
+import { scan as scanReactNative } from './react-native-scanner.js';
 import { read as readPlist } from './plist-reader.js';
 import { read as readManifest } from './manifest-reader.js';
 import { read as readPubspec } from './pubspec-reader.js';
+import { read as readPackage } from './package-reader.js';
 import { audit } from './auditor.js';
 import { fetchGuidelines } from './guidelines.js';
 import { print as printReport } from './reporter.js';
 import { PROVIDER_DEFAULTS as DEFAULTS, detectPlatform } from './defaults.js';
 import { trackEvent } from './telemetry.js';
+
+/**
+ * Detect project type: flutter, react-native, or unknown
+ */
+async function detectProjectType(projectDir) {
+  const hasPubspec = existsSync(join(projectDir, 'pubspec.yaml'));
+  const hasPackageJson = existsSync(join(projectDir, 'package.json'));
+
+  if (hasPubspec) {
+    return 'flutter';
+  }
+
+  if (hasPackageJson) {
+    try {
+      const content = await readFile(join(projectDir, 'package.json'), 'utf-8');
+      const pkg = JSON.parse(content);
+      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+      
+      if (deps['react-native'] || deps['expo']) {
+        return 'react-native';
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }
+
+  return 'unknown';
+}
 
 // Read package version
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -53,7 +83,7 @@ program
 program
   .command('audit', { isDefault: true })
   .description('Run the audit (default command)')
-  .requiredOption('--dir <path>', 'Path to Flutter project root')
+  .requiredOption('--dir <path>', 'Path to project root (Flutter or React Native)')
   .option('--key <apiKey>', 'API key (or set in .shipli / env var)')
   .option('--provider <provider>', 'AI provider: gemini or claude')
   .option('--model <model>', 'Model to use (defaults per provider)')
@@ -69,8 +99,13 @@ program
       process.exit(1);
     }
 
-    if (!existsSync(join(projectDir, 'lib'))) {
-      console.error(chalk.red(`Error: No lib/ directory found in ${projectDir}. Is this a Flutter project?`));
+    // Detect project type
+    const frameworkType = await detectProjectType(projectDir);
+    
+    if (frameworkType === 'unknown') {
+      console.error(chalk.red(`Error: Could not detect Flutter or React Native project.`));
+      console.error(chalk.dim('  Flutter: Requires pubspec.yaml with Flutter SDK'));
+      console.error(chalk.dim('  React Native: Requires package.json with react-native or expo'));
       process.exit(1);
     }
 
@@ -113,32 +148,53 @@ program
     }
 
     const platformLabel = { ios: 'iOS', android: 'Android', both: 'iOS + Android' }[platform];
-    let spinner = ora({ text: `Scanning Flutter project (${platformLabel})...`, color: 'cyan' }).start();
+    const frameworkLabel = frameworkType === 'react-native' ? 'React Native' : 'Flutter';
+    let spinner = ora({ text: `Scanning ${frameworkLabel} project (${platformLabel})...`, color: 'cyan' }).start();
     const startTime = Date.now();
 
     try {
-      // 1. Read pubspec.yaml first (needed for type detection)
-      spinner.text = 'Reading pubspec.yaml...';
-      const pubspec = await readPubspec(projectDir);
-
-      // 2. Resolve project type: CLI flag > config > auto-detect from pubspec
-      const projectType = opts.type || config.type || pubspec.projectType;
-      spinner.text = `Detected: ${chalk.cyan(projectType)} / ${chalk.cyan(platformLabel)}`;
-
-      // 3. Scan Dart files
-      spinner.text = 'Scanning Dart files...';
-      const { files, stats } = await scan(projectDir);
-      spinner.text = `Scanned ${stats.totalFiles} files (${stats.totalLines} lines → ${stats.skeletonLines} skeleton lines)`;
-
-      // 4. Scan example/ app for packages (if it exists)
+      let files, stats, projectMetadata, projectType;
       let exampleFiles = [];
-      if (projectType === 'package' && existsSync(join(projectDir, 'example', 'lib'))) {
-        spinner.text = 'Scanning example/ app...';
-        const exampleResult = await scan(join(projectDir, 'example'));
-        exampleFiles = exampleResult.files;
+
+      if (frameworkType === 'react-native') {
+        // React Native project flow
+        spinner.text = 'Reading package.json...';
+        projectMetadata = await readPackage(projectDir);
+        projectType = 'app'; // React Native projects are typically apps
+        
+        spinner.text = `Detected: ${chalk.cyan(projectMetadata.isExpo ? 'Expo' : 'React Native')} app / ${chalk.cyan(platformLabel)}`;
+        
+        // Scan React Native source files
+        spinner.text = 'Scanning React Native files...';
+        const scanResult = await scanReactNative(projectDir);
+        files = scanResult.files;
+        stats = scanResult.stats;
+        spinner.text = `Scanned ${stats.totalFiles} files (${stats.totalLines} lines → ${stats.skeletonLines} skeleton lines)`;
+      } else {
+        // Flutter project flow
+        spinner.text = 'Reading pubspec.yaml...';
+        projectMetadata = await readPubspec(projectDir);
+        
+        // Resolve project type: CLI flag > config > auto-detect from pubspec
+        projectType = opts.type || config.type || projectMetadata.projectType;
+        spinner.text = `Detected: ${chalk.cyan(projectType)} / ${chalk.cyan(platformLabel)}`;
+
+        // Scan Dart files
+        spinner.text = 'Scanning Dart files...';
+        const scanResult = await scan(projectDir);
+        files = scanResult.files;
+        stats = scanResult.stats;
+        spinner.text = `Scanned ${stats.totalFiles} files (${stats.totalLines} lines → ${stats.skeletonLines} skeleton lines)`;
+
+        // Scan example/ app for packages (if it exists)
+        if (projectType === 'package' && existsSync(join(projectDir, 'example', 'lib'))) {
+          spinner.text = 'Scanning example/ app...';
+          const exampleResult = await scan(join(projectDir, 'example'));
+          exampleFiles = exampleResult.files;
+        }
       }
 
-      // 5. Read platform-specific permission files
+      // Read platform-specific permission files
       let plistData = { found: false, permissions: {}, bundleId: null };
       let manifestData = { found: false, permissions: [], packageName: null };
 
@@ -152,9 +208,10 @@ program
         manifestData = await readManifest(projectDir);
       }
 
-      // 6. Load store guidelines (for store and both modes)
+      // Load store guidelines (for store and both modes)
       let appleGuidelines = null;
       let googleGuidelines = null;
+      let reactNativeGuidelines = null;
 
       if (mode !== 'code') {
         if (platform === 'ios' || platform === 'both') {
@@ -174,9 +231,14 @@ program
             spinner = ora({ text: '', color: 'cyan' }).start();
           }
         }
+
+        if (frameworkType === 'react-native') {
+          spinner.text = 'Loading React Native guidelines...';
+          reactNativeGuidelines = await fetchGuidelines('reactNative');
+        }
       }
 
-      // 7. Run AI audit
+      // Run AI audit
       const modeLabel = { store: 'store compliance', code: 'code quality', both: 'full' }[mode];
       spinner.text = `Running ${modeLabel} audit with ${provider}/${model}...`;
       const result = await audit(
@@ -185,7 +247,7 @@ program
           exampleFiles,
           permissions: plistData.permissions,
           androidPermissions: manifestData.permissions,
-          pubspec,
+          pubspec: projectMetadata,
           plistFound: (platform === 'ios' || platform === 'both') ? plistData.found : undefined,
           androidManifestFound: (platform === 'android' || platform === 'both') ? manifestData.found : undefined,
           projectType,
@@ -197,20 +259,21 @@ program
 
       spinner.stop();
 
-      // 8. Print report
+      // Print report
       printReport(result, {
         projectType,
-        projectName: pubspec.name,
+        projectName: projectMetadata.name,
         provider,
         model,
         mode,
         platform,
       });
 
-      // 9. Track and exit
+      // Track and exit
       trackEvent('audit_completed', {
         source: 'cli', mode, platform, provider, model,
         project_type: projectType, score: result.score,
+        framework: frameworkType,
         duration_ms: Date.now() - startTime,
         tokens_input: result._tokens?.actual?.input ?? null,
         tokens_output: result._tokens?.actual?.output ?? null,

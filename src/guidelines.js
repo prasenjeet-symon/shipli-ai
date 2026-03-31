@@ -13,6 +13,10 @@ const STORES = {
     file: join(__dirname, 'rules', 'android-rules.md'),
     label: 'Play Store',
   },
+  reactNative: {
+    file: join(__dirname, 'rules', 'react-native-rules.md'),
+    label: 'React Native',
+  },
 };
 
 /**

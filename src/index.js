@@ -14,6 +14,8 @@ import { scan } from './scanner.js';
 import { read as readPlist } from './plist-reader.js';
 import { read as readManifest } from './manifest-reader.js';
 import { read as readPubspec } from './pubspec-reader.js';
+import { read as readPackage } from './package-reader.js';
+import { scan as scanRN } from './scanner-rn.js';
 import { audit } from './auditor.js';
 import { fetchGuidelines } from './guidelines.js';
 import { print as printReport } from './reporter.js';
@@ -69,8 +71,12 @@ program
       process.exit(1);
     }
 
-    if (!existsSync(join(projectDir, 'lib'))) {
-      console.error(chalk.red(`Error: No lib/ directory found in ${projectDir}. Is this a Flutter project?`));
+    // Allow either Flutter (lib/) or React Native (package.json) projects
+    const isFlutter = existsSync(join(projectDir, 'lib'));
+    const hasPackageJson = existsSync(join(projectDir, 'package.json'));
+
+    if (!isFlutter && !hasPackageJson) {
+      console.error(chalk.red(`Error: Could not find project sources in ${projectDir}. Expected Flutter (lib/) or JS project (package.json).`));
       process.exit(1);
     }
 
@@ -117,24 +123,37 @@ program
     const startTime = Date.now();
 
     try {
-      // 1. Read pubspec.yaml first (needed for type detection)
-      spinner.text = 'Reading pubspec.yaml...';
-      const pubspec = await readPubspec(projectDir);
+      // 1. Read project metadata (pubspec for Flutter, package.json for JS/RN)
+      let pubspec = null;
+      let packageJson = null;
+      let projectTypeAuto = null;
 
-      // 2. Resolve project type: CLI flag > config > auto-detect from pubspec
-      const projectType = opts.type || config.type || pubspec.projectType;
+      if (isFlutter) {
+        spinner.text = 'Reading pubspec.yaml...';
+        pubspec = await readPubspec(projectDir);
+        projectTypeAuto = pubspec.projectType;
+      } else {
+        spinner.text = 'Reading package.json...';
+        packageJson = await readPackage(projectDir);
+        projectTypeAuto = packageJson.projectType === 'react-native' ? 'app' : packageJson.projectType;
+      }
+
+      // 2. Resolve project type: CLI flag > config > auto-detect
+      const projectType = opts.type || config.type || projectTypeAuto;
       spinner.text = `Detected: ${chalk.cyan(projectType)} / ${chalk.cyan(platformLabel)}`;
 
-      // 3. Scan Dart files
-      spinner.text = 'Scanning Dart files...';
-      const { files, stats } = await scan(projectDir);
+      // 3. Scan source files
+      spinner.text = isFlutter ? 'Scanning Dart files...' : 'Scanning JS/TS files...';
+      const scanResult = isFlutter ? await scan(projectDir) : await scanRN(projectDir);
+      const { files, stats } = scanResult;
       spinner.text = `Scanned ${stats.totalFiles} files (${stats.totalLines} lines → ${stats.skeletonLines} skeleton lines)`;
 
       // 4. Scan example/ app for packages (if it exists)
       let exampleFiles = [];
-      if (projectType === 'package' && existsSync(join(projectDir, 'example', 'lib'))) {
+      if (projectType === 'package' && existsSync(join(projectDir, 'example'))) {
         spinner.text = 'Scanning example/ app...';
-        const exampleResult = await scan(join(projectDir, 'example'));
+        const examplePath = join(projectDir, 'example');
+        const exampleResult = isFlutter ? await scan(examplePath) : await scanRN(examplePath);
         exampleFiles = exampleResult.files;
       }
 
@@ -155,6 +174,7 @@ program
       // 6. Load store guidelines (for store and both modes)
       let appleGuidelines = null;
       let googleGuidelines = null;
+  let reactNativeGuidelines = null;
 
       if (mode !== 'code') {
         if (platform === 'ios' || platform === 'both') {
@@ -176,6 +196,16 @@ program
         }
       }
 
+      // Load React Native bundled guidelines (used for code guidance) when auditing JS projects
+      if (!isFlutter && mode !== 'store') {
+        spinner.text = 'Loading React Native guidelines...';
+        reactNativeGuidelines = await fetchGuidelines('react-native');
+        if (reactNativeGuidelines.warning) {
+          spinner.warn(chalk.yellow(reactNativeGuidelines.warning));
+          spinner = ora({ text: '', color: 'cyan' }).start();
+        }
+      }
+
       // 7. Run AI audit
       const modeLabel = { store: 'store compliance', code: 'code quality', both: 'full' }[mode];
       spinner.text = `Running ${modeLabel} audit with ${provider}/${model}...`;
@@ -186,11 +216,13 @@ program
           permissions: plistData.permissions,
           androidPermissions: manifestData.permissions,
           pubspec,
+          packageJson,
           plistFound: (platform === 'ios' || platform === 'both') ? plistData.found : undefined,
           androidManifestFound: (platform === 'android' || platform === 'both') ? manifestData.found : undefined,
           projectType,
           appleGuidelines,
-          googleGuidelines,
+            googleGuidelines,
+            reactNativeGuidelines,
         },
         { apiKey, model, provider, mode, platform },
       );

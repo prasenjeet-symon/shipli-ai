@@ -59,10 +59,11 @@ CODE QUALITY AUDIT CATEGORIES (evaluate each):
 
 // ── System prompt builders ──
 
-function buildStorePrompt(platform) {
+function buildStorePrompt(platform, ecosystem = 'flutter') {
   const isIos = platform === 'ios';
   const isAndroid = platform === 'android';
   const isBoth = platform === 'both';
+  const isReactNative = ecosystem === 'react-native';
 
   const guidelinesRef = [];
   if (isIos || isBoth) {
@@ -78,7 +79,7 @@ function buildStorePrompt(platform) {
       "- Apple's App Store Review Guidelines (all sections)",
       '- iOS privacy requirements (Info.plist usage descriptions, App Tracking Transparency)',
       '- In-app purchase requirements (StoreKit vs third-party payment)',
-      '- Common iOS rejection reasons for Flutter apps',
+      isReactNative ? '- Common iOS rejection reasons for React Native apps' : '- Common iOS rejection reasons for Flutter apps',
     );
   }
   if (isAndroid || isBoth) {
@@ -86,18 +87,30 @@ function buildStorePrompt(platform) {
       "- Google Play Developer Program Policies (all sections)",
       '- Android permissions model and Data Safety requirements',
       '- Google Play Billing Library requirements for digital goods',
-      '- Common Android rejection reasons for Flutter apps',
+      isReactNative ? '- Common Android rejection reasons for React Native apps' : '- Common Android rejection reasons for Flutter apps',
     );
+  }
+  if (isReactNative) {
+    knowledge.push(
+      '- React Native app structure, Metro bundling, and native bridge/module constraints',
+      '- React Navigation, OTA/code push risk areas, and React Native mobile permission flows',
+    );
+  } else {
+    knowledge.push('- Flutter app structure, widget lifecycle, and Flutter-specific platform integration');
   }
   knowledge.push(
     '- Data safety and encryption export compliance',
     '- Minimum functionality and content policy requirements',
   );
 
-  const evidence = ['- "PUBSPEC_METADATA": App name, version, and list of pub.dev package dependencies'];
+  const evidence = [isReactNative
+    ? '- "PACKAGE_JSON_METADATA": App name, version, npm dependencies, and scripts'
+    : '- "PUBSPEC_METADATA": App name, version, and list of pub.dev package dependencies'];
   if (isIos || isBoth) evidence.push('- "INFO_PLIST_PERMISSIONS": NS*UsageDescription keys from Info.plist');
   if (isAndroid || isBoth) evidence.push('- "ANDROID_MANIFEST_PERMISSIONS": uses-permission entries from AndroidManifest.xml');
-  evidence.push('- "DART_SKELETONS": Architectural skeleton of Dart files');
+  evidence.push(isReactNative
+    ? '- "JS_TS_SKELETONS": Architectural skeleton of JavaScript/TypeScript files'
+    : '- "DART_SKELETONS": Architectural skeleton of Dart files');
 
   const categories = [];
   if (isIos || isBoth) categories.push(IOS_STORE_CATEGORIES);
@@ -105,7 +118,7 @@ function buildStorePrompt(platform) {
 
   const platformLabel = isBoth ? 'Apple App Store and Google Play' : isIos ? 'Apple App Store' : 'Google Play Store';
 
-  return `You are an experienced ${platformLabel} reviewer conducting a pre-submission compliance audit of a Flutter/Dart application.
+  return `You are an experienced ${platformLabel} reviewer conducting a pre-submission compliance audit of a ${isReactNative ? 'React Native' : 'Flutter/Dart'} application.
 
 ${guidelinesRef.join('\n')}
 
@@ -120,28 +133,30 @@ ${categories.join('\n')}
 ${RESPONSE_FORMAT}`;
 }
 
-function buildCodePrompt() {
-  return `You are a senior Flutter/Dart software engineer conducting a code quality and security review. You have deep knowledge of:
+function buildCodePrompt(ecosystem = 'flutter') {
+  const isReactNative = ecosystem === 'react-native';
+  return `You are a senior ${isReactNative ? 'React Native/JavaScript/TypeScript' : 'Flutter/Dart'} software engineer conducting a code quality and security review. You have deep knowledge of:
 
-- Flutter best practices, widget lifecycle, state management patterns
-- Dart language features, null safety, async patterns
+- ${isReactNative ? 'React Native best practices, hooks, navigation, state management, and native module integration' : 'Flutter best practices, widget lifecycle, state management patterns'}
+- ${isReactNative ? 'JavaScript/TypeScript language features, async patterns, and React component architecture' : 'Dart language features, null safety, async patterns'}
 - Common security vulnerabilities in mobile apps (OWASP Mobile Top 10)
-- Performance optimization for Flutter (build methods, rebuilds, isolates)
-- Dependency management and pub.dev ecosystem health
+- ${isReactNative ? 'Performance optimization for React Native (bridge usage, list rendering, bundle size, memoization)' : 'Performance optimization for Flutter (build methods, rebuilds, isolates)'}
+- ${isReactNative ? 'Dependency management and npm ecosystem health' : 'Dependency management and pub.dev ecosystem health'}
 
 Focus ONLY on code quality, security, and engineering best practices — not store compliance or legal requirements.
 
 EVIDENCE FORMAT:
-- "PUBSPEC_METADATA": App name, version, and list of pub.dev package dependencies
-- "DART_SKELETONS": Architectural skeleton of Dart files
+${isReactNative ? '- "PACKAGE_JSON_METADATA": App name, version, npm dependencies, and scripts' : '- "PUBSPEC_METADATA": App name, version, and list of pub.dev package dependencies'}
+${isReactNative ? '- "JS_TS_SKELETONS": Architectural skeleton of JavaScript/TypeScript files' : '- "DART_SKELETONS": Architectural skeleton of Dart files'}
 ${CODE_CATEGORIES}
 ${RESPONSE_FORMAT}`;
 }
 
-function buildBothPrompt(platform) {
+function buildBothPrompt(platform, ecosystem = 'flutter') {
   const isIos = platform === 'ios';
   const isAndroid = platform === 'android';
   const isBoth = platform === 'both';
+  const isReactNative = ecosystem === 'react-native';
 
   const guidelinesRef = [];
   if (isIos || isBoth) {
@@ -167,15 +182,19 @@ function buildBothPrompt(platform) {
     );
   }
   knowledge.push(
-    '- Flutter best practices, widget lifecycle, state management patterns',
+    isReactNative ? '- React Native best practices, navigation, hooks, state management, and native bridge patterns' : '- Flutter best practices, widget lifecycle, state management patterns',
     '- Common security vulnerabilities in mobile apps (OWASP Mobile Top 10)',
-    '- Performance optimization and dependency management',
+    isReactNative ? '- React Native performance optimization and npm dependency management' : '- Performance optimization and dependency management',
   );
 
-  const evidence = ['- "PUBSPEC_METADATA": App name, version, and list of pub.dev package dependencies'];
+  const evidence = [isReactNative
+    ? '- "PACKAGE_JSON_METADATA": App name, version, npm dependencies, and scripts'
+    : '- "PUBSPEC_METADATA": App name, version, and list of pub.dev package dependencies'];
   if (isIos || isBoth) evidence.push('- "INFO_PLIST_PERMISSIONS": NS*UsageDescription keys from Info.plist');
   if (isAndroid || isBoth) evidence.push('- "ANDROID_MANIFEST_PERMISSIONS": uses-permission entries from AndroidManifest.xml');
-  evidence.push('- "DART_SKELETONS": Architectural skeleton of Dart files');
+  evidence.push(isReactNative
+    ? '- "JS_TS_SKELETONS": Architectural skeleton of JavaScript/TypeScript files'
+    : '- "DART_SKELETONS": Architectural skeleton of Dart files');
 
   const categories = [];
   if (isIos || isBoth) categories.push(IOS_STORE_CATEGORIES);
@@ -184,14 +203,14 @@ function buildBothPrompt(platform) {
 
   const platformLabel = isBoth ? 'Apple App Store and Google Play' : isIos ? 'Apple App Store' : 'Google Play Store';
 
-  return `You are an experienced ${platformLabel} reviewer AND senior Flutter/Dart engineer conducting a comprehensive audit.
+  return `You are an experienced ${platformLabel} reviewer AND senior ${isReactNative ? 'React Native/JavaScript/TypeScript' : 'Flutter/Dart'} engineer conducting a comprehensive audit.
 
 ${guidelinesRef.join('\n')}
 
 You have deep knowledge of:
 ${knowledge.join('\n')}
 
-Analyze the provided Flutter project evidence and produce a comprehensive audit report covering both store compliance and code quality.
+Analyze the provided ${isReactNative ? 'React Native' : 'Flutter'} project evidence and produce a comprehensive audit report covering both store compliance and code quality.
 
 EVIDENCE FORMAT:
 ${evidence.join('\n')}
@@ -277,23 +296,24 @@ ${RESPONSE_FORMAT}`;
 
 // ── Prompt selection ──
 
-function selectPrompt(projectType, mode, platform) {
+function selectPrompt(projectType, mode, platform, ecosystem = 'flutter') {
   if (projectType === 'package') {
     if (mode === 'store') return buildPkgStorePrompt();
     if (mode === 'code') return buildPkgCodePrompt();
     return buildPkgBothPrompt();
   }
   // App
-  if (mode === 'store') return buildStorePrompt(platform);
-  if (mode === 'code') return buildCodePrompt();
-  return buildBothPrompt(platform);
+  if (mode === 'store') return buildStorePrompt(platform, ecosystem);
+  if (mode === 'code') return buildCodePrompt(ecosystem);
+  return buildBothPrompt(platform, ecosystem);
 }
 
 // ── Message builder ──
 
-function buildUserMessage({ files, exampleFiles, permissions, androidPermissions, pubspec, plistFound, androidManifestFound, projectType, appleGuidelines, googleGuidelines }) {
+function buildUserMessage({ files, exampleFiles, permissions, androidPermissions, metadata, plistFound, androidManifestFound, projectType, appleGuidelines, googleGuidelines }) {
   const sections = [];
   const isPackage = projectType === 'package';
+  const isReactNative = metadata.ecosystem === 'react-native';
 
   // Inject live guidelines as grounding context
   if (appleGuidelines?.content) {
@@ -308,17 +328,20 @@ function buildUserMessage({ files, exampleFiles, permissions, androidPermissions
     sections.push(googleGuidelines.content);
   }
 
-  sections.push('\n=== PUBSPEC_METADATA ===');
-  sections.push(`${isPackage ? 'Package' : 'App'}: ${pubspec.name}${pubspec.version ? ` v${pubspec.version}` : ''}`);
-  if (pubspec.description) {
-    sections.push(`Description: ${pubspec.description}`);
+  sections.push(isReactNative ? '\n=== PACKAGE_JSON_METADATA ===' : '\n=== PUBSPEC_METADATA ===');
+  sections.push(`${isPackage ? 'Package' : 'App'}: ${metadata.name}${metadata.version ? ` v${metadata.version}` : ''}`);
+  if (metadata.description) {
+    sections.push(`Description: ${metadata.description}`);
   }
-  sections.push(`Dependencies: ${pubspec.dependencies.join(', ') || '(none)'}`);
-  sections.push(`Dev Dependencies: ${pubspec.devDependencies.join(', ') || '(none)'}`);
+  sections.push(`Dependencies: ${metadata.dependencies.join(', ') || '(none)'}`);
+  sections.push(`Dev Dependencies: ${metadata.devDependencies.join(', ') || '(none)'}`);
+  if (isReactNative) {
+    sections.push(`Scripts: ${metadata.scripts.join(', ') || '(none)'}`);
+  }
 
-  if (isPackage && pubspec.pluginPlatforms) {
+  if (isPackage && metadata.pluginPlatforms) {
     sections.push('\n=== PLUGIN_PLATFORMS ===');
-    for (const [platform, config] of Object.entries(pubspec.pluginPlatforms)) {
+    for (const [platform, config] of Object.entries(metadata.pluginPlatforms)) {
       sections.push(`${platform}: ${JSON.stringify(config)}`);
     }
   }
@@ -351,7 +374,7 @@ function buildUserMessage({ files, exampleFiles, permissions, androidPermissions
     }
   }
 
-  sections.push('\n=== DART_SKELETONS ===');
+  sections.push(isReactNative ? '\n=== JS_TS_SKELETONS ===' : '\n=== DART_SKELETONS ===');
   for (const file of files) {
     sections.push(`\n--- ${file.relativePath} ---`);
     sections.push(file.skeleton);
@@ -479,7 +502,7 @@ const TOKEN_LIMITS = {
 };
 
 export async function audit(evidence, { apiKey, model, provider, mode, platform }) {
-  const systemPrompt = selectPrompt(evidence.projectType, mode, platform);
+  const systemPrompt = selectPrompt(evidence.projectType, mode, platform, evidence.metadata.ecosystem);
   const userMessage = buildUserMessage(evidence);
 
   const estimated = {

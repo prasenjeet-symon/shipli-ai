@@ -5,7 +5,7 @@
 
 **Website:** [https://prasenjeet-symon.github.io/shipli-ai/](https://prasenjeet-symon.github.io/shipli-ai/)
 
-Store rejections cost days of development time. **Shipli** is a CLI tool that audits your Flutter source code against **Apple App Store** and **Google Play** guidelines using AI.
+Store rejections cost days of development time. **Shipli** is a CLI tool that audits your Flutter and React Native source code against **Apple App Store** and **Google Play** guidelines using AI.
 
 Catch missing permissions, policy violations, and compliance issues before you submit.
 
@@ -16,7 +16,7 @@ Catch missing permissions, policy violations, and compliance issues before you s
 - **AI-Powered** — Choose between Google Gemini or Anthropic Claude. Bring your own API key.
 - **Up-to-Date Policies** — Ships with the latest Apple and Google Play store policies. Works offline.
 - **Auto-Detection** — Automatically detects project type and target platform from your project structure.
-- **Zero Setup** — No compiled artifacts needed. Point it at your Flutter project and run.
+- **Zero Setup** — No compiled artifacts needed. Point it at your Flutter or React Native project and run.
 - **CI-Ready** — Designed for automation. Integrates with any CI/CD pipeline.
 
 ## Installation
@@ -60,7 +60,7 @@ shipli --dir ./ --mode code
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--dir <path>` | Path to Flutter project root | *required* |
+| `--dir <path>` | Path to Flutter or React Native project root | *required* |
 | `--key <key>` | API key | `.shipli` / env var |
 | `--provider <name>` | `gemini` or `claude` | `gemini` |
 | `--model <model>` | Model override | per provider |
@@ -118,6 +118,12 @@ Use `shipli config` to update settings anytime.
 |----------|---------|
 | Permissions & Data Safety | Unnecessary permissions, data safety declarations |
 | Data Collection & Privacy | Privacy policy, user data handling |
+
+## Supported Project Types
+
+- Flutter apps
+- Flutter packages/plugins
+- React Native apps
 | Content & Behavior | Restricted content, deceptive behavior |
 | Billing & Monetization | Payment method compliance |
 | API Level & Compatibility | Target API requirements, version compatibility |

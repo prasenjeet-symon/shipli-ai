@@ -4,6 +4,7 @@
 [![license](https://img.shields.io/npm/l/@prasenjeet/shipli)](LICENSE)
 
 **Website:** [https://prasenjeet-symon.github.io/shipli-ai/](https://prasenjeet-symon.github.io/shipli-ai/)
+**Discord:** [https://discord.gg/rWctcPsP](https://discord.gg/rWctcPsP)
 
 Store rejections cost days of development time. **Shipli** is a CLI tool that audits your Flutter source code against **Apple App Store** and **Google Play** guidelines using AI.
 

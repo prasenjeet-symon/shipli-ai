@@ -8,13 +8,12 @@ import { readFile } from 'node:fs/promises';
 import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scan } from './scanner.js';
-import { read as readPubspec } from './pubspec-reader.js';
 import { read as readPlist } from './plist-reader.js';
 import { read as readManifest } from './manifest-reader.js';
 import { fetchGuidelines } from './guidelines.js';
 import { audit } from './auditor.js';
-import { loadConfig } from './config.js';
 import { PROVIDER_DEFAULTS, detectPlatform } from './defaults.js';
+import { readProjectMetadata, validateProject } from './project-reader.js';
 import { trackEvent } from './telemetry.js';
 
 // ── Read package version ──
@@ -43,19 +42,6 @@ function resolveConfig(projectDir) {
   return { provider, model, apiKey };
 }
 
-// ── Validate project directory ──
-
-function validateProject(projectDir) {
-  const resolved = resolve(projectDir);
-  if (!existsSync(resolved)) {
-    throw new Error(`Directory not found: ${resolved}`);
-  }
-  if (!existsSync(join(resolved, 'lib'))) {
-    throw new Error(`No lib/ directory found in ${resolved}. Is this a Flutter project?`);
-  }
-  return resolved;
-}
-
 // ── Create server ──
 
 const server = new McpServer({
@@ -67,9 +53,9 @@ const server = new McpServer({
 
 server.tool(
   'shipli_store_audit',
-  'Run a store compliance audit on a Flutter project against Apple App Store and/or Google Play guidelines. Scans Dart source files, pubspec.yaml, Info.plist (iOS), and AndroidManifest.xml (Android). Returns structured JSON with PASS/WARNING/FAIL scores, specific guideline citations, and actionable fix suggestions. Supports both Flutter apps and packages.',
+  'Run a store compliance audit on a Flutter or React Native project against Apple App Store and/or Google Play guidelines. Scans source files plus native permission manifests and returns structured JSON with PASS/WARNING/FAIL scores, guideline citations, and actionable fixes.',
   {
-    projectDir: z.string().describe('Absolute path to the Flutter project root directory. Must contain a pubspec.yaml and a lib/ folder. Example: "/Users/you/projects/my-flutter-app"'),
+    projectDir: z.string().describe('Absolute path to the Flutter or React Native project root directory. Example: "/Users/you/projects/my-mobile-app"'),
     platform: z.enum(['ios', 'android', 'both']).optional().describe('Target platform: "ios" (App Store only), "android" (Play Store only), or "both" (both stores). Auto-detected from ios/ and android/ directory presence if omitted.'),
   },
   async ({ projectDir, platform }) => {
@@ -78,15 +64,15 @@ server.tool(
       const dir = validateProject(projectDir);
       const { provider, model, apiKey } = resolveConfig(dir);
 
-      const pubspec = await readPubspec(dir);
-      const projectType = pubspec.projectType;
+      const metadata = await readProjectMetadata(dir);
+      const projectType = metadata.projectType;
       const resolvedPlatform = platform || detectPlatform(dir);
 
-      const { files } = await scan(dir);
+      const { files } = await scan(dir, { ecosystem: metadata.ecosystem });
 
       let exampleFiles = [];
-      if (projectType === 'package' && existsSync(join(dir, 'example', 'lib'))) {
-        const exampleResult = await scan(join(dir, 'example'));
+      if (projectType === 'package' && metadata.ecosystem === 'flutter' && existsSync(join(dir, 'example', 'lib'))) {
+        const exampleResult = await scan(join(dir, 'example'), { ecosystem: metadata.ecosystem });
         exampleFiles = exampleResult.files;
       }
 
@@ -116,7 +102,7 @@ server.tool(
           exampleFiles,
           permissions: plistData.permissions,
           androidPermissions: manifestData.permissions,
-          pubspec,
+          metadata,
           plistFound: (resolvedPlatform === 'ios' || resolvedPlatform === 'both') ? plistData.found : undefined,
           androidManifestFound: (resolvedPlatform === 'android' || resolvedPlatform === 'both') ? manifestData.found : undefined,
           projectType,
@@ -155,9 +141,9 @@ server.tool(
 
 server.tool(
   'shipli_code_review',
-  'Run a code quality and security review on a Flutter project. Scans all Dart source files and pubspec.yaml. Checks architecture patterns, error handling, performance issues, dependency hygiene, and security vulnerabilities. Returns structured JSON with findings, severity levels, and fix suggestions. Supports both Flutter apps and packages (including example/ directories).',
+  'Run a code quality and security review on a Flutter or React Native project. Scans source files plus project metadata, then checks architecture, error handling, performance issues, dependency hygiene, and security vulnerabilities.',
   {
-    projectDir: z.string().describe('Absolute path to the Flutter project root directory. Must contain a pubspec.yaml and a lib/ folder. Example: "/Users/you/projects/my-flutter-app"'),
+    projectDir: z.string().describe('Absolute path to the Flutter or React Native project root directory. Example: "/Users/you/projects/my-mobile-app"'),
   },
   async ({ projectDir }) => {
     const startTime = Date.now();
@@ -165,14 +151,14 @@ server.tool(
       const dir = validateProject(projectDir);
       const { provider, model, apiKey } = resolveConfig(dir);
 
-      const pubspec = await readPubspec(dir);
-      const projectType = pubspec.projectType;
+      const metadata = await readProjectMetadata(dir);
+      const projectType = metadata.projectType;
 
-      const { files } = await scan(dir);
+      const { files } = await scan(dir, { ecosystem: metadata.ecosystem });
 
       let exampleFiles = [];
-      if (projectType === 'package' && existsSync(join(dir, 'example', 'lib'))) {
-        const exampleResult = await scan(join(dir, 'example'));
+      if (projectType === 'package' && metadata.ecosystem === 'flutter' && existsSync(join(dir, 'example', 'lib'))) {
+        const exampleResult = await scan(join(dir, 'example'), { ecosystem: metadata.ecosystem });
         exampleFiles = exampleResult.files;
       }
 
@@ -182,7 +168,7 @@ server.tool(
           exampleFiles,
           permissions: {},
           androidPermissions: [],
-          pubspec,
+          metadata,
           plistFound: undefined,
           androidManifestFound: undefined,
           projectType,

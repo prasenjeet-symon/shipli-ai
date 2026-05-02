@@ -13,11 +13,15 @@ const STORES = {
     file: join(__dirname, 'rules', 'android-rules.md'),
     label: 'Play Store',
   },
+  'react-native': {
+    file: join(__dirname, 'rules', 'react-native-rules.md'),
+    label: 'React Native',
+  },
 };
 
 /**
  * Load guidelines from bundled .md files.
- * @param {'apple' | 'google'} store
+ * @param {'apple' | 'google' | 'react-native'} store
  */
 export async function fetchGuidelines(store = 'apple') {
   const config = STORES[store];

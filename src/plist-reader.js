@@ -1,9 +1,20 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import plist from 'plist';
+import fg from 'fast-glob';
 
+// Try to locate a Info.plist for both Flutter and React Native projects.
 export async function read(projectDir) {
-  const plistPath = path.join(projectDir, 'ios', 'Runner', 'Info.plist');
+  // Candidate glob patterns inside ios/ folder
+  const candidates = await fg.glob('ios/**/Info.plist', { cwd: projectDir, absolute: true });
+
+  // Prefer ios/Runner/Info.plist if present (Flutter default)
+  let plistPath = candidates.find(p => p.endsWith(path.join('ios', 'Runner', 'Info.plist')));
+  if (!plistPath) plistPath = candidates[0];
+
+  if (!plistPath) {
+    return { found: false, permissions: {}, bundleId: null };
+  }
 
   try {
     const xml = await readFile(plistPath, 'utf-8');
@@ -20,11 +31,9 @@ export async function read(projectDir) {
       found: true,
       permissions,
       bundleId: parsed.CFBundleIdentifier || null,
+      path: plistPath,
     };
   } catch (err) {
-    if (err.code === 'ENOENT') {
-      return { found: false, permissions: {}, bundleId: null };
-    }
     throw err;
   }
 }

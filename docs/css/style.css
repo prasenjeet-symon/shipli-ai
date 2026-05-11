@@ -313,9 +313,10 @@ footer {
   background: linear-gradient(180deg, var(--bg) 0%, #060010 100%);
 }
 footer .footer-logo {
-  width: 100px;
+  width: 64px;
+  height: 64px;
   margin-bottom: 20px;
-  opacity: 0.7;
+  opacity: 0.9;
 }
 footer .links { display: flex; justify-content: center; gap: 24px; margin-bottom: 16px; }
 footer .links a {

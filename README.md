@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/shipli-logo.svg" alt="Shipli logo" width="420">
+</p>
+
 # Shipli
 
 [![npm version](https://img.shields.io/npm/v/@prasenjeet/shipli)](https://www.npmjs.com/package/@prasenjeet/shipli)
@@ -19,6 +23,10 @@ Catch missing permissions, policy violations, and compliance issues before you s
 - **Auto-Detection** — Automatically detects project type and target platform from your project structure.
 - **Zero Setup** — No compiled artifacts needed. Point it at your Flutter project and run.
 - **CI-Ready** — Designed for automation. Integrates with any CI/CD pipeline.
+
+## Brand Assets
+
+Logo assets are available in `assets/` as SVG and PNG files, with matching copies in `docs/assets/` for the GitHub Pages site.
 
 ## Installation
 

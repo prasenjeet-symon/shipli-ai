@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -13,11 +12,11 @@ import { runInit, runConfig } from './init.js';
 import { scan } from './scanner.js';
 import { read as readPlist } from './plist-reader.js';
 import { read as readManifest } from './manifest-reader.js';
-import { read as readPubspec } from './pubspec-reader.js';
 import { audit } from './auditor.js';
 import { fetchGuidelines } from './guidelines.js';
 import { print as printReport } from './reporter.js';
 import { PROVIDER_DEFAULTS as DEFAULTS, detectPlatform } from './defaults.js';
+import { readProjectMetadata, validateProject } from './project-reader.js';
 import { trackEvent } from './telemetry.js';
 
 // Read package version
@@ -28,7 +27,7 @@ const program = new Command();
 
 program
   .name('shipli')
-  .description('AI-powered store review audit for Flutter projects')
+  .description('AI-powered store review audit for Flutter and React Native projects')
   .version(pkg.version);
 
 // Init subcommand
@@ -53,7 +52,7 @@ program
 program
   .command('audit', { isDefault: true })
   .description('Run the audit (default command)')
-  .requiredOption('--dir <path>', 'Path to Flutter project root')
+  .requiredOption('--dir <path>', 'Path to Flutter or React Native project root')
   .option('--key <apiKey>', 'API key (or set in .shipli / env var)')
   .option('--provider <provider>', 'AI provider: gemini or claude')
   .option('--model <model>', 'Model to use (defaults per provider)')
@@ -62,17 +61,6 @@ program
   .option('--platform <platform>', 'Target: ios, android, or both (auto-detected if omitted)')
   .action(async (opts) => {
     const projectDir = resolve(opts.dir);
-
-    // Validate directory
-    if (!existsSync(projectDir)) {
-      console.error(chalk.red(`Error: Directory not found: ${projectDir}`));
-      process.exit(1);
-    }
-
-    if (!existsSync(join(projectDir, 'lib'))) {
-      console.error(chalk.red(`Error: No lib/ directory found in ${projectDir}. Is this a Flutter project?`));
-      process.exit(1);
-    }
 
     // Load .shipli config (project-level > home-level)
     const config = await loadConfig(projectDir);
@@ -113,28 +101,31 @@ program
     }
 
     const platformLabel = { ios: 'iOS', android: 'Android', both: 'iOS + Android' }[platform];
-    let spinner = ora({ text: `Scanning Flutter project (${platformLabel})...`, color: 'cyan' }).start();
+    let spinner = ora({ text: `Scanning project (${platformLabel})...`, color: 'cyan' }).start();
     const startTime = Date.now();
 
     try {
-      // 1. Read pubspec.yaml first (needed for type detection)
-      spinner.text = 'Reading pubspec.yaml...';
-      const pubspec = await readPubspec(projectDir);
+      const validatedDir = validateProject(projectDir);
 
-      // 2. Resolve project type: CLI flag > config > auto-detect from pubspec
-      const projectType = opts.type || config.type || pubspec.projectType;
-      spinner.text = `Detected: ${chalk.cyan(projectType)} / ${chalk.cyan(platformLabel)}`;
+      // 1. Read project metadata first (needed for type detection)
+      spinner.text = 'Reading project metadata...';
+      const metadata = await readProjectMetadata(validatedDir);
 
-      // 3. Scan Dart files
-      spinner.text = 'Scanning Dart files...';
-      const { files, stats } = await scan(projectDir);
+      // 2. Resolve project type: CLI flag > config > auto-detect from metadata
+      const projectType = opts.type || config.type || metadata.projectType;
+      const ecosystemLabel = metadata.ecosystem === 'react-native' ? 'react-native' : 'flutter';
+      spinner.text = `Detected: ${chalk.cyan(projectType)} / ${chalk.cyan(ecosystemLabel)} / ${chalk.cyan(platformLabel)}`;
+
+      // 3. Scan source files
+      spinner.text = `Scanning ${metadata.ecosystem === 'react-native' ? 'JavaScript/TypeScript' : 'Dart'} files...`;
+      const { files, stats } = await scan(validatedDir, { ecosystem: metadata.ecosystem });
       spinner.text = `Scanned ${stats.totalFiles} files (${stats.totalLines} lines → ${stats.skeletonLines} skeleton lines)`;
 
       // 4. Scan example/ app for packages (if it exists)
       let exampleFiles = [];
-      if (projectType === 'package' && existsSync(join(projectDir, 'example', 'lib'))) {
+      if (projectType === 'package' && metadata.ecosystem === 'flutter' && existsSync(join(validatedDir, 'example', 'lib'))) {
         spinner.text = 'Scanning example/ app...';
-        const exampleResult = await scan(join(projectDir, 'example'));
+        const exampleResult = await scan(join(validatedDir, 'example'), { ecosystem: metadata.ecosystem });
         exampleFiles = exampleResult.files;
       }
 
@@ -144,12 +135,12 @@ program
 
       if (projectType === 'app' && (platform === 'ios' || platform === 'both')) {
         spinner.text = 'Reading Info.plist...';
-        plistData = await readPlist(projectDir);
+        plistData = await readPlist(validatedDir);
       }
 
       if (projectType === 'app' && (platform === 'android' || platform === 'both')) {
         spinner.text = 'Reading AndroidManifest.xml...';
-        manifestData = await readManifest(projectDir);
+        manifestData = await readManifest(validatedDir);
       }
 
       // 6. Load store guidelines (for store and both modes)
@@ -185,7 +176,7 @@ program
           exampleFiles,
           permissions: plistData.permissions,
           androidPermissions: manifestData.permissions,
-          pubspec,
+          metadata,
           plistFound: (platform === 'ios' || platform === 'both') ? plistData.found : undefined,
           androidManifestFound: (platform === 'android' || platform === 'both') ? manifestData.found : undefined,
           projectType,
@@ -200,7 +191,7 @@ program
       // 8. Print report
       printReport(result, {
         projectType,
-        projectName: pubspec.name,
+        projectName: metadata.name,
         provider,
         model,
         mode,

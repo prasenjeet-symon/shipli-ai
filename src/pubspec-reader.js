@@ -19,6 +19,7 @@ export async function read(projectDir) {
       dependencies: Object.keys(doc.dependencies || {}),
       devDependencies: Object.keys(doc.dev_dependencies || {}),
       projectType: isPlugin ? 'package' : 'app',
+      ecosystem: 'flutter',
       pluginPlatforms: isPlugin ? (flutterSection.plugin.platforms || null) : null,
     };
   } catch (err) {

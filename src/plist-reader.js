@@ -1,11 +1,22 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import plist from 'plist';
+import fg from 'fast-glob';
 
 export async function read(projectDir) {
-  const plistPath = path.join(projectDir, 'ios', 'Runner', 'Info.plist');
+  const candidates = await fg.glob('ios/**/Info.plist', {
+    cwd: projectDir,
+    absolute: true,
+    ignore: ['**/Pods/**', '**/build/**'],
+  });
+  const preferredPath = path.resolve(projectDir, 'ios', 'Runner', 'Info.plist');
+  const plistPath = candidates.find(candidate => path.resolve(candidate) === preferredPath)
+    || candidates[0];
 
   try {
+    if (!plistPath) {
+      return { found: false, permissions: {}, bundleId: null };
+    }
     const xml = await readFile(plistPath, 'utf-8');
     const parsed = plist.parse(xml);
 

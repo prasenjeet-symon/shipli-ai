@@ -1,11 +1,14 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { readProjectFile } from './project-file.js';
 
-export async function read(projectDir) {
+export async function read(projectDir, framework = 'flutter') {
   const manifestPath = path.join(projectDir, 'android', 'app', 'src', 'main', 'AndroidManifest.xml');
 
   try {
-    const xml = await readFile(manifestPath, 'utf-8');
+    const xml = framework === 'react-native'
+      ? await readProjectFile(projectDir, 'android/app/src/main/AndroidManifest.xml')
+      : await readFile(manifestPath, 'utf-8');
 
     // Extract package name from <manifest package="...">
     const pkgMatch = xml.match(/<manifest[^>]+package\s*=\s*"([^"]+)"/);

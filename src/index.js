@@ -10,14 +10,10 @@ import ora from 'ora';
 import chalk from 'chalk';
 import { loadConfig } from './config.js';
 import { runInit, runConfig } from './init.js';
-import { scan } from './scanner.js';
-import { read as readPlist } from './plist-reader.js';
-import { read as readManifest } from './manifest-reader.js';
-import { read as readPubspec } from './pubspec-reader.js';
 import { audit } from './auditor.js';
-import { fetchGuidelines } from './guidelines.js';
+import { detectProject, collectEvidence } from './project.js';
 import { print as printReport } from './reporter.js';
-import { PROVIDER_DEFAULTS as DEFAULTS, detectPlatform } from './defaults.js';
+import { PROVIDER_DEFAULTS as DEFAULTS } from './defaults.js';
 import { trackEvent } from './telemetry.js';
 
 // Read package version
@@ -28,7 +24,7 @@ const program = new Command();
 
 program
   .name('shipli')
-  .description('AI-powered store review audit for Flutter projects')
+  .description('AI-powered store review audit for Flutter and React Native projects')
   .version(pkg.version);
 
 // Init subcommand
@@ -53,7 +49,7 @@ program
 program
   .command('audit', { isDefault: true })
   .description('Run the audit (default command)')
-  .requiredOption('--dir <path>', 'Path to Flutter project root')
+  .requiredOption('--dir <path>', 'Path to Flutter or React Native project root')
   .option('--key <apiKey>', 'API key (or set in .shipli / env var)')
   .option('--provider <provider>', 'AI provider: gemini or claude')
   .option('--model <model>', 'Model to use (defaults per provider)')
@@ -69,8 +65,11 @@ program
       process.exit(1);
     }
 
-    if (!existsSync(join(projectDir, 'lib'))) {
-      console.error(chalk.red(`Error: No lib/ directory found in ${projectDir}. Is this a Flutter project?`));
+    let project;
+    try {
+      project = await detectProject(projectDir);
+    } catch (err) {
+      console.error(chalk.red(`Error: ${err.message}`));
       process.exit(1);
     }
 
@@ -96,7 +95,7 @@ program
       process.exit(1);
     }
 
-    const platform = (opts.platform || config.platform || detectPlatform(projectDir)).toLowerCase();
+    const platform = (opts.platform || config.platform || project.platform).toLowerCase();
     if (!['ios', 'android', 'both'].includes(platform)) {
       console.error(chalk.red(`Error: --platform must be "ios", "android", or "both", got "${platform}".`));
       process.exit(1);
@@ -113,101 +112,42 @@ program
     }
 
     const platformLabel = { ios: 'iOS', android: 'Android', both: 'iOS + Android' }[platform];
-    let spinner = ora({ text: `Scanning Flutter project (${platformLabel})...`, color: 'cyan' }).start();
+    let spinner = ora({ text: `Scanning ${project.label} project (${platformLabel})...`, color: 'cyan' }).start();
     const startTime = Date.now();
 
     try {
-      // 1. Read pubspec.yaml first (needed for type detection)
-      spinner.text = 'Reading pubspec.yaml...';
-      const pubspec = await readPubspec(projectDir);
-
-      // 2. Resolve project type: CLI flag > config > auto-detect from pubspec
-      const projectType = opts.type || config.type || pubspec.projectType;
-      spinner.text = `Detected: ${chalk.cyan(projectType)} / ${chalk.cyan(platformLabel)}`;
-
-      // 3. Scan Dart files
-      spinner.text = 'Scanning Dart files...';
-      const { files, stats } = await scan(projectDir);
-      spinner.text = `Scanned ${stats.totalFiles} files (${stats.totalLines} lines → ${stats.skeletonLines} skeleton lines)`;
-
-      // 4. Scan example/ app for packages (if it exists)
-      let exampleFiles = [];
-      if (projectType === 'package' && existsSync(join(projectDir, 'example', 'lib'))) {
-        spinner.text = 'Scanning example/ app...';
-        const exampleResult = await scan(join(projectDir, 'example'));
-        exampleFiles = exampleResult.files;
+      const projectType = opts.type || config.type || project.projectType;
+      if (!['app', 'package'].includes(projectType)) {
+        throw new Error(`Project type must be "app" or "package", got "${projectType}".`);
       }
-
-      // 5. Read platform-specific permission files
-      let plistData = { found: false, permissions: {}, bundleId: null };
-      let manifestData = { found: false, permissions: [], packageName: null };
-
-      if (projectType === 'app' && (platform === 'ios' || platform === 'both')) {
-        spinner.text = 'Reading Info.plist...';
-        plistData = await readPlist(projectDir);
-      }
-
-      if (projectType === 'app' && (platform === 'android' || platform === 'both')) {
-        spinner.text = 'Reading AndroidManifest.xml...';
-        manifestData = await readManifest(projectDir);
-      }
-
-      // 6. Load store guidelines (for store and both modes)
-      let appleGuidelines = null;
-      let googleGuidelines = null;
-
-      if (mode !== 'code') {
-        if (platform === 'ios' || platform === 'both') {
-          spinner.text = 'Loading App Store guidelines...';
-          appleGuidelines = await fetchGuidelines('apple');
-          if (appleGuidelines.warning) {
-            spinner.warn(chalk.yellow(appleGuidelines.warning));
-            spinner = ora({ text: '', color: 'cyan' }).start();
-          }
-        }
-
-        if (platform === 'android' || platform === 'both') {
-          spinner.text = 'Loading Play Store guidelines...';
-          googleGuidelines = await fetchGuidelines('google');
-          if (googleGuidelines.warning) {
-            spinner.warn(chalk.yellow(googleGuidelines.warning));
-            spinner = ora({ text: '', color: 'cyan' }).start();
-          }
+      spinner.text = `Scanning ${project.label} source and metadata...`;
+      const { evidence, stats } = await collectEvidence(projectDir, { project, projectType, platform, mode });
+      spinner.text = `Scanned ${stats.totalFiles} files (${stats.totalLines} lines → ${stats.skeletonLines} evidence lines)`;
+      for (const guidelines of [evidence.appleGuidelines, evidence.googleGuidelines, evidence.reactNativeGuidelines]) {
+        if (guidelines?.warning) {
+          spinner.warn(chalk.yellow(guidelines.warning));
+          spinner = ora({ text: '', color: 'cyan' }).start();
         }
       }
 
-      // 7. Run AI audit
+      // Run AI audit
       const modeLabel = { store: 'store compliance', code: 'code quality', both: 'full' }[mode];
       spinner.text = `Running ${modeLabel} audit with ${provider}/${model}...`;
-      const result = await audit(
-        {
-          files,
-          exampleFiles,
-          permissions: plistData.permissions,
-          androidPermissions: manifestData.permissions,
-          pubspec,
-          plistFound: (platform === 'ios' || platform === 'both') ? plistData.found : undefined,
-          androidManifestFound: (platform === 'android' || platform === 'both') ? manifestData.found : undefined,
-          projectType,
-          appleGuidelines,
-          googleGuidelines,
-        },
-        { apiKey, model, provider, mode, platform },
-      );
+      const result = await audit(evidence, { apiKey, model, provider, mode, platform });
 
       spinner.stop();
 
-      // 8. Print report
+      // Print report
       printReport(result, {
         projectType,
-        projectName: pubspec.name,
+        projectName: project.metadata.name,
         provider,
         model,
         mode,
         platform,
       });
 
-      // 9. Track and exit
+      // Track and exit
       trackEvent('audit_completed', {
         source: 'cli', mode, platform, provider, model,
         project_type: projectType, score: result.score,

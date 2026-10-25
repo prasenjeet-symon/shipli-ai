@@ -6,7 +6,7 @@
 **Website:** [https://prasenjeet-symon.github.io/shipli-ai/](https://prasenjeet-symon.github.io/shipli-ai/)
 **Discord:** [https://discord.gg/rWctcPsP](https://discord.gg/rWctcPsP)
 
-Store rejections cost days of development time. **Shipli** is a CLI tool that audits your Flutter source code against **Apple App Store** and **Google Play** guidelines using AI.
+Store rejections cost days of development time. **Shipli** is a CLI tool that audits your Flutter or React Native source code against **Apple App Store** and **Google Play** guidelines using AI.
 
 Catch missing permissions, policy violations, and compliance issues before you submit.
 
@@ -17,7 +17,7 @@ Catch missing permissions, policy violations, and compliance issues before you s
 - **AI-Powered** — Choose between Google Gemini or Anthropic Claude. Bring your own API key.
 - **Up-to-Date Policies** — Ships with the latest Apple and Google Play store policies. Works offline.
 - **Auto-Detection** — Automatically detects project type and target platform from your project structure.
-- **Zero Setup** — No compiled artifacts needed. Point it at your Flutter project and run.
+- **Zero Setup** — No compiled artifacts needed. Point it at your Flutter or React Native project and run.
 - **CI-Ready** — Designed for automation. Integrates with any CI/CD pipeline.
 
 ## Installation
@@ -49,6 +49,49 @@ shipli --dir ./ --platform android --mode store
 shipli --dir ./ --mode code
 ```
 
+### React Native and Expo
+
+The same CLI and both MCP tools automatically recognize `react-native` or `expo`
+in `package.json` dependencies, devDependencies, or peerDependencies:
+
+```bash
+shipli --dir ./my-react-native-app --mode both
+shipli --dir ./my-expo-app --mode code
+shipli --dir ./my-native-library --type package
+```
+
+- Scans `.js`, `.jsx`, `.ts`, and `.tsx` in root entry files, `src/`, `app/`
+  (including Expo Router routes), `components/`, `lib/`, and other project folders.
+- Excludes dependency, build, generated, hidden, coverage, minified and declaration
+  files, and does not follow source-file or source-directory symlinks.
+- Rejects React Native metadata paths that resolve outside the audited root;
+  iOS discovery skips symlinked files and directories. This does not change Flutter readers.
+- Includes declared dependency versions, separate iOS target `Info.plist` permissions,
+  and `android/app/src/main/AndroidManifest.xml` permissions.
+- Bundled React Native guidance covers navigation/deep links, state/hooks, native
+  modules, platform differences, list/JS-thread performance, and security.
+- Reads static Expo `app.config.json` or `app.json` configuration. It never executes
+  `app.config.js` / `app.config.ts` (including `.mjs`, `.cjs`, `.mts`, `.cts` variants),
+  config plugins, project scripts, or native builds.
+  Managed Expo projects do not need committed `ios/` and `android/` directories.
+
+Platform defaults come from native directories, then static Expo `platforms` when
+no native directories or dynamic config exist, otherwise both stores. Use
+`--platform` (or the MCP store tool's `platform`) to override the target.
+Non-private packages with a React Native peer dependency are treated as libraries;
+use `--type app` or `--type package` to override this heuristic in the CLI.
+Point Shipli at an individual app/package directory in a monorepo. Flutter projects
+with `pubspec.yaml` and `lib/` retain priority over an accompanying tooling package.json.
+
+Audits send selected source, dependency metadata and native/static Expo configuration
+to your configured AI provider. Review or redact secrets before auditing a project.
+
+React Native evidence is numbered source excerpts, capped at 300 lines per file,
+8,000 lines overall, and 2,000 characters per source line. Omitted evidence is marked;
+findings still need review against complete source. Native implementation code,
+resolved dynamic Expo configuration, generated manifests, runtime behavior, and live
+store acceptance are not verified by a source audit. Bundled policies can become outdated.
+
 ### Commands
 
 | Command | Description |
@@ -61,7 +104,7 @@ shipli --dir ./ --mode code
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--dir <path>` | Path to Flutter project root | *required* |
+| `--dir <path>` | Path to Flutter or React Native project root | *required* |
 | `--key <key>` | API key | `.shipli` / env var |
 | `--provider <name>` | `gemini` or `claude` | `gemini` |
 | `--model <model>` | Model override | per provider |
@@ -213,7 +256,7 @@ Restart Claude Code (or run `/mcp` in chat) to pick up the new server. You shoul
 | `shipli_store_audit` | Run store compliance audit against Apple App Store and/or Google Play guidelines | `projectDir` (required), `platform` (optional: `ios`, `android`, `both`) |
 | `shipli_code_review` | Run code quality and security review | `projectDir` (required) |
 
-Both tools return structured JSON with PASS/WARNING/FAIL scores and specific guideline citations.
+Both tools support Flutter and React Native/Expo projects and return structured JSON with PASS/WARNING/FAIL scores and specific guideline citations.
 
 ### Usage
 
@@ -221,7 +264,7 @@ Once configured, ask your AI assistant:
 
 ```
 "Run a store audit on /path/to/my-flutter-app"
-"Review the code quality of this Flutter project"
+"Review the code quality of this React Native project"
 ```
 
 The assistant will call the appropriate Shipli MCP tool and return the results inline.
@@ -253,6 +296,26 @@ export DO_NOT_TRACK=1
 ```
 
 Or add `"telemetry": false` to your `~/.shipli` config file.
+
+## Development and offline verification
+
+```bash
+npm ci --ignore-scripts
+npm test
+node src/index.js --help
+npm pack --dry-run
+```
+
+Tests spawn the real CLI and use the MCP SDK client over stdio to initialize the
+server, list tools, and call both audit tools. Only the model HTTP boundary is
+replaced with controlled responses; no live model, paid API request, or React
+Native build is used. Tests use dummy keys, isolated home directories, disabled
+telemetry, and a fetch interceptor that rejects unexpected destinations.
+
+Coverage includes all CLI audit modes, bare React Native, Expo, native libraries,
+Flutter apps/plugins, metadata/scanning boundaries, platform selection, provider
+configuration, and failure propagation. `src/defaults.js` supplies the provider
+and platform defaults already imported by the CLI and MCP entry points.
 
 ## License
 

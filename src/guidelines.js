@@ -5,6 +5,10 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const STORES = {
+  'react-native': {
+    file: join(__dirname, 'rules', 'react-native-rules.md'),
+    label: 'React Native',
+  },
   apple: {
     file: join(__dirname, 'rules', 'appstore-rules.md'),
     label: 'App Store',
@@ -17,7 +21,7 @@ const STORES = {
 
 /**
  * Load guidelines from bundled .md files.
- * @param {'apple' | 'google'} store
+ * @param {'apple' | 'google' | 'react-native'} store
  */
 export async function fetchGuidelines(store = 'apple') {
   const config = STORES[store];

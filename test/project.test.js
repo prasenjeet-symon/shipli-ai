@@ -109,6 +109,62 @@ test('static Expo config precedence and dynamic overrides do not infer a single 
   assert.equal(result.platform, 'both');
 });
 
+for (const file of ['app.json', 'app.config.json']) {
+  for (const [syntax, config] of [
+    ['comments', '{ /* Expo permits comments */ "expo": { "name": "commented", "platforms": ["ios"] } // trailing comment\n}'],
+    ['trailing commas', '{ "expo": { "name": "comma", "platforms": ["ios",], }, }'],
+    ['JSON5 strings and keys', "{ expo: { name: 'quoted', platforms: ['ios'], updates: { url: 'https://example.test/a/*literal*/?q=//literal' } } }"],
+  ]) {
+    test(`reads ${syntax} in static Expo ${file}`, async (t) => {
+      const { detectProject } = await project();
+      const dir = await fixture(t, { 'package.json': { dependencies: { expo: '*' } }, [file]: config });
+      const result = await detectProject(dir);
+      assert.equal(result.metadata.expoConfigFile, file);
+      assert.equal(result.platform, 'ios');
+      assert.deepEqual(result.metadata.expoConfig.platforms, ['ios']);
+      if (syntax === 'JSON5 strings and keys') {
+        assert.equal(result.metadata.expoConfig.updates.url, 'https://example.test/a/*literal*/?q=//literal');
+      }
+    });
+  }
+}
+
+test('package.json remains strict JSON even for Expo projects', async (t) => {
+  const { detectProject } = await project();
+  for (const pkg of [
+    '{ /* not permitted in package.json */ "dependencies": { "expo": "*" } }',
+    '{ "dependencies": { "expo": "*", }, }',
+    "{ dependencies: { expo: '*' } }",
+  ]) {
+    const dir = await fixture(t, { 'package.json': pkg });
+    await assert.rejects(detectProject(dir), /Could not read .*package\.json/);
+  }
+});
+
+test('static Expo configs reject malformed input and non-object roots', async (t) => {
+  const { detectProject } = await project();
+  for (const file of ['app.json', 'app.config.json']) {
+    for (const config of ['null', '[]', 'true', '42', '"string"', '{ "expo": { "name": } }']) {
+      const dir = await fixture(t, { 'package.json': { dependencies: { expo: '*' } }, [file]: config });
+      await assert.rejects(detectProject(dir), new RegExp(`Could not read .*${file.replaceAll('.', '\\.')}`));
+    }
+  }
+});
+
+test('static Expo configuration does not evaluate JavaScript expressions', async (t) => {
+  const { detectProject } = await project();
+  const marker = '__shipliStaticConfigExecuted';
+  assert.equal(globalThis[marker], undefined);
+  t.after(() => { delete globalThis[marker]; });
+  for (const file of ['app.json', 'app.config.json']) {
+    const dir = await fixture(t, { 'package.json': { dependencies: { expo: '*' } },
+      [file]: `{ expo: { name: (() => { globalThis.${marker} = true; return 'executed'; })() } }`,
+    });
+    await assert.rejects(detectProject(dir), /Could not read/);
+    assert.equal(globalThis[marker], undefined);
+  }
+});
+
 test('all supported dynamic Expo config extensions are reported without execution', async (t) => {
   const { detectProject } = await project();
   for (const extension of ['js', 'ts', 'mjs', 'cjs', 'mts', 'cts']) {

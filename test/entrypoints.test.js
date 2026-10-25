@@ -64,7 +64,9 @@ test('real MCP protocol advertises and runs both tools for Expo and bare React N
   const bare = await fixture(t, rn);
   const expo = await fixture(t, { ...rn,
     'package.json': { name: 'managed-app', dependencies: { expo: '^54.0.0', 'react-native': '0.81.0' } },
-    'app.json': { expo: { name: 'Managed', ios: { infoPlist: { NSCameraUsageDescription: 'Take profile photos' } }, android: { permissions: ['CAMERA'] } } },
+    'app.json': `{ // JSON5 static Expo configuration
+      expo: { name: 'Managed', ios: { infoPlist: { NSCameraUsageDescription: 'Take profile photos' } }, android: { permissions: ['CAMERA',] }, },
+    }`,
     'app/(tabs)/index.tsx': 'export default function Home() { return <Text>Home</Text>; }',
   });
   const client = await mcp(t, bare);
@@ -138,7 +140,7 @@ test('provider failure and FAIL scores propagate through CLI and MCP', async (t)
 });
 
 test('platform selection limits store policy evidence in CLI and MCP', async (t) => {
-  const dir = await fixture(t, { ...rn, 'app.json': { expo: { platforms: ['ios'] } }, 'package.json': { ...rn['package.json'], dependencies: { ...rn['package.json'].dependencies, expo: '^54' } } });
+  const dir = await fixture(t, { ...rn, 'app.config.json': "{ /* JSON5 */ expo: { platforms: ['ios',], }, }", 'package.json': { ...rn['package.json'], dependencies: { ...rn['package.json'].dependencies, expo: '^54' } } });
   const cliResult = await cli(dir, ['--mode', 'store']);
   assert.equal(cliResult.code, 0, cliResult.stderr);
   let evidence = prompt((await requests(dir)).at(-1)).user;

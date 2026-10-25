@@ -1,15 +1,16 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import JSON5 from 'json5';
 import { readProjectFile } from './project-file.js';
 
 function object(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-async function readJson(projectDir, file) {
+async function readJson(projectDir, file, parse = JSON.parse) {
   const path = join(projectDir, file);
   try {
-    const value = JSON.parse(await readProjectFile(projectDir, file));
+    const value = parse(await readProjectFile(projectDir, file));
     if (!object(value)) throw new Error('expected a JSON object');
     return value;
   } catch (err) {
@@ -42,7 +43,8 @@ export async function read(projectDir) {
   if (isExpo) {
     // app.config.json takes precedence over app.json; executable configs are not evaluated.
     for (const file of ['app.config.json', 'app.json']) {
-      const config = await readJson(projectDir, file);
+      // Expo accepts JSON5 for static config; package.json stays strict JSON.
+      const config = await readJson(projectDir, file, JSON5.parse);
       if (!config) continue;
       const source = object(config.expo) ? config.expo : config;
       // Do not transmit unrelated config.extra values such as service credentials.
